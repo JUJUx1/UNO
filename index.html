@@ -223,18 +223,20 @@ body::before {
 
 /* Overlays */
 .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:500; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(6px); padding:24px; }
+#colorModal.overlay { background:rgba(0,0,0,0.25); backdrop-filter:blur(0px); align-items:flex-end; padding-bottom:180px; }
 .modal { background:linear-gradient(145deg,#1a3d2a,#0d2018); border:1px solid rgba(255,255,255,0.14); border-radius:22px; padding:26px 22px 22px; text-align:center; max-width:330px; width:100%; box-shadow:0 24px 60px rgba(0,0,0,0.7); animation:modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+#colorModal .modal { background:rgba(10,20,15,0.6); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.18); box-shadow:0 8px 40px rgba(0,0,0,0.5); padding:20px 18px 18px; }
 @keyframes modalIn { from{transform:scale(0.7) translateY(20px);opacity:0;} to{transform:scale(1) translateY(0);opacity:1;} }
 .modal-ttl { font-family:'Nunito',sans-serif; font-weight:900; font-size:19px; margin-bottom:5px; }
 .modal-sub { font-size:12px; color:rgba(255,255,255,0.5); margin-bottom:18px; }
 .color-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-.color-btn { padding:15px 10px; border-radius:13px; border:2px solid rgba(255,255,255,0.2); font-family:'Nunito',sans-serif; font-weight:900; font-size:14px; cursor:pointer; transition:transform 0.15s; color:white; }
-.color-btn:hover { transform:scale(1.06); }
+.color-btn { padding:15px 10px; border-radius:13px; border:3px solid rgba(255,255,255,0.35); font-family:'Nunito',sans-serif; font-weight:900; font-size:14px; cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; color:white; text-shadow:0 1px 4px rgba(0,0,0,0.7); backdrop-filter:blur(2px); }
+.color-btn:hover { transform:scale(1.08); box-shadow:0 0 20px var(--glow,rgba(255,255,255,0.4)); }
 .color-btn:active { transform:scale(0.95); }
-.cb-r{background:linear-gradient(145deg,#e8192c,#8b0000);}
-.cb-y{background:linear-gradient(145deg,#f5d400,#b8860b);color:#1a0a00;}
-.cb-g{background:linear-gradient(145deg,#1e9e46,#0d5525);}
-.cb-b{background:linear-gradient(145deg,#0156a8,#012d60);}
+.cb-r{background:rgba(232,25,44,0.45); --glow:rgba(232,25,44,0.7); border-color:rgba(232,25,44,0.8); box-shadow:0 0 12px rgba(232,25,44,0.4);}
+.cb-y{background:rgba(245,212,0,0.45); --glow:rgba(245,212,0,0.7); border-color:rgba(245,212,0,0.8); box-shadow:0 0 12px rgba(245,212,0,0.4); color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.9);}
+.cb-g{background:rgba(30,158,70,0.45); --glow:rgba(30,158,70,0.7); border-color:rgba(30,158,70,0.8); box-shadow:0 0 12px rgba(30,158,70,0.4);}
+.cb-b{background:rgba(1,86,168,0.45); --glow:rgba(1,86,168,0.7); border-color:rgba(1,86,168,0.8); box-shadow:0 0 12px rgba(1,86,168,0.4);}
 
 /* Win screen */
 .win-emoji { font-size:52px; margin-bottom:8px; animation:winBounce 0.5s cubic-bezier(0.34,1.56,0.64,1); }
