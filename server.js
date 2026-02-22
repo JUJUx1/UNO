@@ -35,6 +35,34 @@ const io     = new Server(server, {
 // ── Health check (keeps Render free tier alive with UptimeRobot) ──
 app.get('/', (_req, res) => res.send('UNO Server OK'));
 
+// ── Stats endpoint ──
+app.get('/stats', (_req, res) => {
+  const roomList = Object.values(rooms).map(r => ({
+    code       : r.code,
+    players    : r.players.length,
+    bots       : (r.bots || []).length,
+    inGame     : !!(r.game && r.game.active),
+    vcActive   : r.vc ? r.vc.size : 0,
+  }));
+  res.json({ rooms: roomList.length, details: roomList });
+});
+
+// ── Stale room cleanup (every 30 min, removes rooms inactive > 2 hours) ──
+const roomCreatedAt = {};
+const _origCreate = rooms;
+setInterval(() => {
+  const now = Date.now();
+  for (const code of Object.keys(rooms)) {
+    const created = roomCreatedAt[code] || now;
+    if (now - created > 2 * 60 * 60 * 1000) {
+      io.to(code).emit('chat', { name:null, text:'⏰ Room expired after 2h inactivity. Please rejoin!', system:true });
+      delete rooms[code];
+      delete roomCreatedAt[code];
+      console.log(`Cleaned up stale room: ${code}`);
+    }
+  }
+}, 30 * 60 * 1000);
+
 // ================================================================
 //  In-memory state
 // ================================================================
@@ -46,7 +74,9 @@ const rooms = {};
 //   game: null | { deck, hands, discardPile, discardTop,
 //                  currentColor, currentValue,
 //                  turnOrder, currentTurnIdx, direction,
-//                  handCounts, finishOrder, unoFlags, active }
+//                  handCounts, finishOrder, unoFlags, active },
+//   vc: Set of socket IDs currently in voice chat,
+//   bots: [ { id, name, difficulty } ]  — AI bot slots
 // }
 
 // ================================================================
@@ -85,6 +115,91 @@ function getRoom(code)   { return rooms[code]; }
 function getName(room, id) {
   const p = room.players.find(p => p.id === id);
   return p ? p.name : '???';
+}
+
+// ================================================================
+//  AI BOT LOGIC
+// ================================================================
+const BOT_NAMES  = ['🤖 RoboUno','🧠 CardBot','👾 AutoAce','⚡ QuickBot','🎯 TargetBot'];
+const BOT_DELAYS = { easy:3000, medium:1600, hard:700 };
+
+function makeBotId() { return 'bot_' + Math.random().toString(36).slice(2,9); }
+
+function addBot(room, difficulty = 'medium') {
+  const used = (room.bots || []).length;
+  if (used >= 3) return null; // max 3 bots
+  const bot = {
+    id         : makeBotId(),
+    uid        : makeBotId(),
+    name       : BOT_NAMES[used % BOT_NAMES.length],
+    avatar     : '🤖',
+    isHost     : false,
+    isBot      : true,
+    difficulty,
+  };
+  if (!room.bots) room.bots = [];
+  room.bots.push(bot);
+  room.players.push(bot);
+  io.to(room.code).emit('player_joined', { player: bot });
+  io.to(room.code).emit('chat', { name:null, text:`${bot.name} joined the game 🤖`, system:true });
+  return bot;
+}
+
+function removeBot(room, botId) {
+  room.bots = (room.bots || []).filter(b => b.id !== botId);
+  room.players = room.players.filter(p => p.id !== botId);
+  io.to(room.code).emit('player_left', { id: botId });
+}
+
+function botChooseCard(hand, game) {
+  // Find all playable cards
+  const playable = hand.filter(c => {
+    if (c.color === 'wild') return true;
+    return c.color === game.currentColor || c.value === game.currentValue;
+  });
+  if (!playable.length) return null;
+  // Prefer special/action cards, then numbered
+  const specials = playable.filter(c => ['skip','reverse','draw2','wild_draw4'].includes(c.value));
+  const wilds    = playable.filter(c => c.value === 'wild' || c.value === 'wild_draw4');
+  const normals  = playable.filter(c => !['skip','reverse','draw2','wild','wild_draw4'].includes(c.value));
+  // Hard: play most disruptive card; Easy: random
+  if (specials.length) return specials[Math.floor(Math.random() * specials.length)];
+  if (normals.length)  return normals[Math.floor(Math.random() * normals.length)];
+  return wilds[0];
+}
+
+function botChooseColor(hand) {
+  const counts = { red:0, yellow:0, green:0, blue:0 };
+  for (const c of hand) if (counts[c.color] !== undefined) counts[c.color]++;
+  return Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0] || 'red';
+}
+
+function scheduleBotTurn(room) {
+  const g = room.game;
+  if (!g || !g.active) return;
+  const currentId = getCurrentId(g);
+  const bot = (room.bots || []).find(b => b.id === currentId);
+  if (!bot) return;
+
+  const delay = BOT_DELAYS[bot.difficulty] || BOT_DELAYS.medium;
+  setTimeout(() => {
+    if (!g.active || getCurrentId(g) !== bot.id) return;
+    const hand = g.hands[bot.id];
+    if (!hand) return;
+
+    // Call UNO if 2 cards
+    if (hand.length === 2) g.unoFlags[bot.id] = true;
+
+    const card = botChooseCard(hand, g);
+    if (card) {
+      const chosenColor = (card.value === 'wild' || card.value === 'wild_draw4')
+        ? botChooseColor(hand.filter(c => c !== card))
+        : null;
+      handlePlay(room, bot.id, card, chosenColor);
+    } else {
+      handleDraw(room, bot.id);
+    }
+  }, delay);
 }
 
 function rebuildCounts(game) {
@@ -138,6 +253,8 @@ function broadcastState(room) {
     unoFlags       : g.unoFlags,
   };
   io.to(room.code).emit('game_state', state);
+  // Trigger bot turn if it's a bot's go
+  scheduleBotTurn(room);
 }
 
 function broadcastHands(room) {
@@ -351,6 +468,8 @@ function startGame(room) {
   }
 
   io.to(room.code).emit('chat', { name:null, text:'Game started! Good luck! 🃏', system:true });
+  // Kick off bot if it goes first
+  scheduleBotTurn(room);
 }
 
 // ================================================================
@@ -378,6 +497,7 @@ io.on('connection', socket => {
     currentRoom = code;
     currentUid  = uid;
     socket.join(code);
+    roomCreatedAt[code] = Date.now();
 
     socket.emit('room_created', { code, players: rooms[code].players, settings: rooms[code].settings });
   });
@@ -476,9 +596,16 @@ io.on('connection', socket => {
   });
 
   // ── CHAT ──
+  const chatCooldowns = {};
   socket.on('chat', ({ name, text }) => {
     if (!currentRoom) return;
-    io.to(currentRoom).emit('chat', { name, text, system:false });
+    // Rate limit: max 1 message per 500ms
+    const now = Date.now();
+    if (chatCooldowns[socket.id] && now - chatCooldowns[socket.id] < 500) return;
+    chatCooldowns[socket.id] = now;
+    // Sanitize
+    const safe = String(text).slice(0, 200).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    io.to(currentRoom).emit('chat', { name, text: safe, system:false });
   });
 
   // ── REACTION ──
@@ -502,6 +629,64 @@ io.on('connection', socket => {
     }
   });
 
+  // ── VOICE CHAT SIGNALING (WebRTC) ──
+  socket.on('vc_join', ({ name, uid }) => {
+    if (!currentRoom) return;
+    const room = getRoom(currentRoom);
+    if (!room) return;
+    if (!room.vc) room.vc = new Set();
+    room.vc.add(socket.id);
+    // Tell everyone else in the room this peer joined VC
+    socket.to(currentRoom).emit('vc_joined', { id: socket.id, name });
+  });
+
+  socket.on('vc_leave', () => {
+    if (!currentRoom) return;
+    const room = getRoom(currentRoom);
+    if (!room || !room.vc) return;
+    room.vc.delete(socket.id);
+    const name = room.players.find(p => p.id === socket.id)?.name || '?';
+    socket.to(currentRoom).emit('vc_left', { id: socket.id, name });
+  });
+
+  socket.on('vc_offer', ({ to, offer }) => {
+    io.to(to).emit('vc_offer', { from: socket.id, offer });
+  });
+
+  socket.on('vc_answer', ({ to, answer }) => {
+    io.to(to).emit('vc_answer', { from: socket.id, answer });
+  });
+
+  socket.on('vc_ice', ({ to, candidate }) => {
+    io.to(to).emit('vc_ice', { from: socket.id, candidate });
+  });
+
+  socket.on('vc_speaking', ({ speaking, name }) => {
+    if (!currentRoom) return;
+    socket.to(currentRoom).emit('vc_speaking', { id: socket.id, name, speaking });
+  });
+
+  // ── BOT MANAGEMENT (host only) ──
+  socket.on('add_bot', ({ difficulty }) => {
+    const room = getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    if (room.game && room.game.active) {
+      socket.emit('error_msg', { msg: 'Cannot add bots during a game' }); return;
+    }
+    if (room.players.length >= 8) {
+      socket.emit('error_msg', { msg: 'Room is full (max 8 players)' }); return;
+    }
+    addBot(room, difficulty || 'medium');
+    io.to(currentRoom).emit('lobby_update', { players: room.players });
+  });
+
+  socket.on('remove_bot', ({ botId }) => {
+    const room = getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    removeBot(room, botId);
+    io.to(currentRoom).emit('lobby_update', { players: room.players });
+  });
+
   // ── LEAVE / DISCONNECT ──
   function handleLeave() {
     if (!currentRoom) return;
@@ -510,6 +695,12 @@ io.on('connection', socket => {
 
     const leaving = room.players.find(p => p.id === socket.id);
     if (!leaving) return;
+
+    // Clean up voice chat
+    if (room.vc) {
+      room.vc.delete(socket.id);
+      socket.to(currentRoom).emit('vc_left', { id: socket.id, name: leaving.name });
+    }
 
     room.players = room.players.filter(p => p.id !== socket.id);
     socket.to(currentRoom).emit('player_left', { id: socket.id });
@@ -535,15 +726,16 @@ io.on('connection', socket => {
       }
     }
 
-    // If host left, assign new host
+    // If host left, assign new host (skip bots)
     if (room.hostId === socket.id && room.players.length > 0) {
-      room.hostId = room.players[0].id;
-      room.players[0].isHost = true;
+      const newHost = room.players.find(p => !p.isBot) || room.players[0];
+      room.hostId = newHost.id;
+      newHost.isHost = true;
       io.to(currentRoom).emit('new_host', { id: room.hostId });
     }
 
     // Clean up empty rooms
-    if (room.players.length === 0) delete rooms[currentRoom];
+    if (room.players.filter(p => !p.isBot).length === 0) delete rooms[currentRoom];
     currentRoom = null;
   }
 
