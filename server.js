@@ -353,24 +353,19 @@ function handlePlay(room, fromId, card, chosenColor) {
     g.unoFlags[fromId] = false;
   }
 
-  // Win check
+  // Win check — end game immediately when first player empties their hand
   if (hand.length === 0) {
     g.finishOrder.push(fromId);
     delete g.hands[fromId];
-    const rem = g.turnOrder.filter(id => g.hands[id] && g.hands[id].length > 0);
-    if (rem.length <= 1) {
-      if (rem.length === 1) g.finishOrder.push(rem[0]);
-      rebuildCounts(g);
-      endGame(room);
-      return;
-    }
-    const ti = g.turnOrder.indexOf(fromId);
-    if (ti !== -1) {
-      g.turnOrder.splice(ti, 1);
-      if (ti < g.currentTurnIdx) g.currentTurnIdx--;
-      else if (g.currentTurnIdx >= g.turnOrder.length) g.currentTurnIdx = 0;
-    }
-    io.to(room.code).emit('chat', { name:null, text:`${getName(room,fromId)} finished! 🎉`, system:true });
+    // Rank remaining players by fewest cards (best remaining = next place)
+    const rem = g.turnOrder
+      .filter(id => g.hands[id])
+      .sort((a, b) => (g.hands[a] || []).length - (g.hands[b] || []).length);
+    for (const pid of rem) g.finishOrder.push(pid);
+    rebuildCounts(g);
+    io.to(room.code).emit('action_banner', { msg: `🏆 ${getName(room, fromId)} wins!` });
+    endGame(room);
+    return;
   }
 
   rebuildCounts(g);
