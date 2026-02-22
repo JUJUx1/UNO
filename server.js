@@ -11,10 +11,25 @@ const { Server } = require('socket.io');
 
 const app    = express();
 const server = http.createServer(app);
+
+// Allow all origins (needed for Render free tier)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
 const io     = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
-  pingInterval: 10000,
-  pingTimeout:  25000,
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: false,
+  },
+  allowEIO3: true,
+  transports: ['polling', 'websocket'],
+  pingInterval: 25000,
+  pingTimeout:  60000,
 });
 
 // ── Health check (keeps Render free tier alive with UptimeRobot) ──
