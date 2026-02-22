@@ -290,6 +290,84 @@ body::before {
 .action-banner.show { opacity:1; transform:translateX(-50%) translateY(0); }
 @media (max-height:680px) { :root{--card-w:54px;--card-h:83px;} .hand-container{padding:15px 10px 3px;} .opp-panel{min-width:78px;} }
 @media (max-height:580px) { :root{--card-w:46px;--card-h:72px;} }
+
+/* ===== 3D CARD FLIP ===== */
+.card-flip-container { perspective: 800px; position:fixed; pointer-events:none; z-index:800; top:0; left:0; width:100%; height:100%; }
+.card-flip { width:62px; height:96px; position:absolute; transform-style:preserve-3d; animation:card3dFlip 0.55s cubic-bezier(0.4,0,0.2,1) forwards; border-radius:10px; }
+@keyframes card3dFlip {
+  0%   { transform:scale(1) rotateY(0deg) translateY(0); opacity:1; }
+  40%  { transform:scale(1.2) rotateY(90deg) translateY(-30px); }
+  70%  { transform:scale(1.1) rotateY(180deg) translateY(-20px); }
+  100% { transform:scale(0.8) rotateY(360deg) translateY(60px); opacity:0; }
+}
+.card-flip-face { position:absolute; inset:0; border-radius:10px; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; font-family:'Nunito',sans-serif; font-weight:900; font-size:18px; box-shadow:0 8px 24px rgba(0,0,0,0.6); }
+.card-flip-front { background:linear-gradient(145deg,#e8192c,#8b0000); color:white; }
+.card-flip-back  { background:linear-gradient(145deg,#1a3a8a,#0d2060); color:#e8192c; transform:rotateY(180deg); }
+
+/* ===== PARTICLES ===== */
+.particle { position:fixed; pointer-events:none; z-index:750; border-radius:50%; animation:particleBurst linear forwards; }
+@keyframes particleBurst { 0%{opacity:1;transform:translate(0,0) scale(1);} 100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.2);} }
+.particle-star { position:fixed; pointer-events:none; z-index:750; font-size:20px; animation:starFloat 1s ease-out forwards; }
+@keyframes starFloat { 0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg);} 100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.3) rotate(360deg);} }
+
+/* ===== DYNAMIC BACKGROUND ===== */
+body { transition: background 1.5s ease; }
+body.bg-red    { background: radial-gradient(ellipse at 30% 20%, #4a1a1a 0%, #2a0a0a 50%, #150505 100%) !important; }
+body.bg-yellow { background: radial-gradient(ellipse at 30% 20%, #4a4a1a 0%, #2a2a0a 50%, #151505 100%) !important; }
+body.bg-green  { background: radial-gradient(ellipse at 30% 20%, #1a4a2a 0%, #0a2a15 50%, #051510 100%) !important; }
+body.bg-blue   { background: radial-gradient(ellipse at 30% 20%, #1a2a4a 0%, #0a1525 50%, #050a15 100%) !important; }
+body.bg-tension { background: radial-gradient(ellipse at 50% 50%, #4a1a0a 0%, #2a0a05 50%, #150503 100%) !important; animation: bgPulse 1s ease-in-out infinite; }
+@keyframes bgPulse { 0%,100%{filter:brightness(1);} 50%{filter:brightness(1.15);} }
+body.bg-win { background: radial-gradient(ellipse at 50% 50%, #4a3a0a 0%, #2a1a05 50%, #150a00 100%) !important; }
+
+/* ===== XP SYSTEM ===== */
+.xp-bar-wrap { position:fixed; top:env(safe-area-inset-top,0); right:0; left:0; z-index:50; padding:6px 14px 0; pointer-events:none; display:none; }
+.xp-bar-wrap.show { display:block; }
+.xp-bar-inner { display:flex; align-items:center; gap:8px; }
+.xp-level-badge { background:linear-gradient(145deg,var(--gold),#ff8c00); color:#1a0a00; font-family:'Nunito',sans-serif; font-weight:900; font-size:10px; padding:2px 8px; border-radius:20px; flex-shrink:0; white-space:nowrap; }
+.xp-bar-track { flex:1; height:5px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; }
+.xp-bar-fill { height:100%; background:linear-gradient(90deg,var(--gold),#ff8c00); border-radius:3px; transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+.xp-gain-pop { position:fixed; font-family:'Nunito',sans-serif; font-weight:900; font-size:16px; color:var(--gold); pointer-events:none; z-index:800; text-shadow:0 0 12px rgba(255,215,0,0.8); animation:xpPop 1.4s ease forwards; }
+@keyframes xpPop { 0%{opacity:0;transform:translateY(0) scale(0.5);} 20%{opacity:1;transform:translateY(-10px) scale(1.2);} 80%{opacity:1;transform:translateY(-40px) scale(1);} 100%{opacity:0;transform:translateY(-60px) scale(0.8);} }
+
+/* ===== LEADERBOARD ===== */
+.lb-btn { position:fixed; top:calc(env(safe-area-inset-top,0) + 8px); right:52px; z-index:150; width:36px; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.18); border-radius:8px; color:var(--gold); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.lb-panel { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,0.88); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; padding:24px; }
+.lb-modal { background:linear-gradient(145deg,#1a3d2a,#0d2018); border:1px solid rgba(255,255,255,0.14); border-radius:22px; padding:24px 20px 20px; width:100%; max-width:340px; max-height:80vh; overflow-y:auto; }
+.lb-modal h2 { font-family:'Nunito',sans-serif; font-weight:900; font-size:20px; text-align:center; color:var(--gold); margin-bottom:4px; }
+.lb-subtitle { font-size:11px; color:rgba(255,255,255,0.35); text-align:center; margin-bottom:16px; }
+.lb-list { list-style:none; display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.lb-item { display:flex; align-items:center; gap:9px; background:rgba(255,255,255,0.055); border-radius:10px; padding:9px 12px; font-family:'Nunito',sans-serif; font-weight:800; font-size:13px; }
+.lb-item.me { background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.25); }
+.lb-rank { width:22px; text-align:center; font-size:15px; flex-shrink:0; }
+.lb-stat { margin-left:auto; font-size:11px; color:rgba(255,255,255,0.45); white-space:nowrap; }
+.lb-wins { color:var(--gold); font-weight:900; }
+.lb-close { display:block; width:100%; background:rgba(255,255,255,0.09); color:white; border:1.5px solid rgba(255,255,255,0.18); border-radius:14px; padding:12px; font-family:'Nunito',sans-serif; font-weight:900; font-size:14px; cursor:pointer; }
+
+/* ===== VOICE CHAT ===== */
+.vc-btn { position:fixed; top:calc(env(safe-area-inset-top,0) + 8px); right:92px; z-index:150; width:36px; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.18); border-radius:8px; color:white; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); transition:background 0.2s, border-color 0.2s; }
+.vc-btn.active { background:rgba(232,25,44,0.3); border-color:rgba(232,25,44,0.6); }
+.vc-btn.speaking { animation:vcPulse 0.6s ease-in-out infinite; }
+@keyframes vcPulse { 0%,100%{box-shadow:0 0 0 0 rgba(232,25,44,0.4);} 50%{box-shadow:0 0 0 8px rgba(232,25,44,0);} }
+.vc-indicators { position:fixed; top:calc(env(safe-area-inset-top,0) + 52px); right:10px; z-index:150; display:flex; flex-direction:column; gap:4px; pointer-events:none; }
+.vc-pip { display:flex; align-items:center; gap:5px; background:rgba(0,0,0,0.7); border-radius:20px; padding:3px 8px 3px 5px; font-family:'Nunito',sans-serif; font-weight:800; font-size:10px; border:1px solid rgba(255,255,255,0.1); opacity:0; transition:opacity 0.3s; }
+.vc-pip.speaking { opacity:1; border-color:rgba(30,200,70,0.5); }
+.vc-mic-dot { width:7px; height:7px; border-radius:50%; background:#2ecc71; animation:micBlink 0.4s ease-in-out infinite; }
+@keyframes micBlink { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+
+/* ===== AI BOT ===== */
+.ai-badge { background:linear-gradient(135deg,#7c3aed,#4c1d95); color:white; font-size:9px; font-family:'Nunito',sans-serif; font-weight:900; padding:1px 5px; border-radius:5px; }
+
+/* ===== REPLAY ===== */
+.replay-btn { background:rgba(255,255,255,0.09); color:white; padding:11px 20px; border-radius:28px; border:1.5px solid rgba(255,255,255,0.18); font-family:'Nunito',sans-serif; font-weight:900; font-size:14px; cursor:pointer; }
+.replay-panel { position:fixed; inset:0; z-index:700; background:rgba(0,0,0,0.92); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; padding:24px; }
+.replay-modal { background:linear-gradient(145deg,#1a3d2a,#0d2018); border:1px solid rgba(255,255,255,0.14); border-radius:22px; padding:22px 20px 18px; width:100%; max-width:340px; }
+.replay-modal h2 { font-family:'Nunito',sans-serif; font-weight:900; font-size:18px; text-align:center; color:var(--gold); margin-bottom:14px; }
+.replay-timeline { display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; margin-bottom:14px; padding-right:4px; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.1) transparent; }
+.replay-event { display:flex; align-items:center; gap:9px; background:rgba(255,255,255,0.055); border-radius:9px; padding:8px 11px; font-size:12px; font-family:'Nunito',sans-serif; font-weight:700; }
+.replay-event .re-icon { font-size:16px; flex-shrink:0; }
+.replay-event .re-time { font-size:10px; color:rgba(255,255,255,0.35); margin-left:auto; white-space:nowrap; }
+.replay-event.re-win { background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.2); }
 </style>
 </head>
 <body>
@@ -477,6 +555,9 @@ body::before {
       <button class="btn-restart" id="btnPlayAgain" onclick="requestRematch()">🔄 Play Again</button>
       <button class="btn-leave-sm" onclick="leaveLobby()">🚪 Leave</button>
     </div>
+    <div style="margin-top:10px;text-align:center">
+      <button class="replay-btn" onclick="openReplay()" style="font-size:12px;padding:8px 18px">🎬 Watch Replay</button>
+    </div>
   </div>
 </div>
 
@@ -500,7 +581,43 @@ body::before {
   </div>
 </div>
 
+<!-- XP Bar -->
+<div class="xp-bar-wrap" id="xpBarWrap">
+  <div class="xp-bar-inner">
+    <div class="xp-level-badge" id="xpLevelBadge">Lv.1</div>
+    <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
+    <span style="font-size:10px;color:rgba(255,255,255,0.35);font-family:'Nunito',sans-serif;font-weight:700;white-space:nowrap" id="xpText">0 XP</span>
+  </div>
+</div>
+
+<!-- Voice Chat Button -->
+<button class="vc-btn" id="vcBtn" onclick="toggleVoice()" title="Voice Chat">🎙️</button>
+<div class="vc-indicators" id="vcIndicators"></div>
+
+<!-- Leaderboard Button -->
+<button class="lb-btn" onclick="showLeaderboard()" title="Leaderboard">🏆</button>
+
+<!-- Fullscreen Button -->
 <button class="fs-btn" onclick="toggleFS()">⛶</button>
+
+<!-- Leaderboard Panel -->
+<div class="lb-panel" id="lbPanel" style="display:none">
+  <div class="lb-modal">
+    <h2>🏆 Leaderboard</h2>
+    <div class="lb-subtitle" id="lbSubtitle">All-time rankings</div>
+    <ul class="lb-list" id="lbList"></ul>
+    <button class="lb-close" onclick="document.getElementById('lbPanel').style.display='none'">✕ Close</button>
+  </div>
+</div>
+
+<!-- Replay Panel -->
+<div class="replay-panel" id="replayPanel" style="display:none">
+  <div class="replay-modal">
+    <h2>🎬 Game Replay</h2>
+    <div class="replay-timeline" id="replayTimeline"></div>
+    <button class="lb-close" onclick="document.getElementById('replayPanel').style.display='none'">✕ Close</button>
+  </div>
+</div>
 
 <script>
 // ================================================================
@@ -561,10 +678,13 @@ function checkTension() {
   if (anyone1 && !tensionOn && themeOn) {
     tensionOn = true; fadeTo(SND['theme'], 0.08, 700);
     SND['last'].currentTime = 0; SND['last'].play().catch(() => {}); fadeTo(SND['last'], 0.55, 700);
+    document.body.classList.add('bg-tension');
   } else if (!anyone1 && tensionOn) {
     tensionOn = false; fadeTo(SND['last'], 0, 500);
     setTimeout(() => { SND['last'].pause(); SND['last'].currentTime = 0; }, 550);
     fadeTo(SND['theme'], 0.35, 700);
+    document.body.classList.remove('bg-tension');
+    setDynamicBg(currentColor);
   }
 }
 
@@ -626,15 +746,315 @@ function makeBack() {
   w.appendChild(img); return w;
 }
 
-// ================================================================
-//  STATE
-// ================================================================
 let mySocketId = null, myName = 'Player', myAvatar = '🎮', myUID = null, isHost = false;
 let currentRoomCode = null, lobbyPlayers = [], gameSettings = { cards:7, stacking:false };
 let myHand = [], handCounts = {}, turnOrder = [], currentTurnIdx = 0, direction = 1;
 let currentColor = '', currentValue = '', discardTop = null, deckCount = 0;
 let finishOrder = [], gameActive = false, unoFlags = {};
 let selectedCard = null, pendingWild = null, rematchVotes = new Set();
+
+// ================================================================
+//  XP SYSTEM
+// ================================================================
+const XP_PER_LEVEL = 120;
+function getXP() { try { return JSON.parse(localStorage.getItem('uno_xp') || '{"xp":0,"level":1}'); } catch(e){ return {xp:0,level:1}; } }
+function saveXP(d){ try { localStorage.setItem('uno_xp', JSON.stringify(d)); } catch(e){} }
+function addXP(amount, reason) {
+  const d = getXP();
+  d.xp += amount;
+  while (d.xp >= XP_PER_LEVEL) { d.xp -= XP_PER_LEVEL; d.level++; showLevelUp(d.level); }
+  saveXP(d); updateXPBar();
+  const pop = document.createElement('div');
+  pop.className = 'xp-gain-pop';
+  pop.textContent = `+${amount} XP`;
+  pop.style.cssText = `left:${30+Math.random()*40}%;top:${40+Math.random()*20}%;`;
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 1500);
+}
+function updateXPBar() {
+  const d = getXP();
+  const pct = (d.xp / XP_PER_LEVEL) * 100;
+  document.getElementById('xpLevelBadge').textContent = `Lv.${d.level}`;
+  document.getElementById('xpBarFill').style.width = pct + '%';
+  document.getElementById('xpText').textContent = `${d.xp}/${XP_PER_LEVEL}`;
+}
+function showLevelUp(lvl) {
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:900;text-align:center;animation:modalIn 0.4s ease forwards;pointer-events:none;';
+  b.innerHTML = `<div style="font-family:Nunito,sans-serif;font-weight:900;font-size:32px;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.8)">⬆️ LEVEL UP!</div><div style="font-family:Nunito,sans-serif;font-weight:800;font-size:18px;color:white;margin-top:4px">You reached Level ${lvl}</div>`;
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 2800);
+}
+function showXPBar(show) {
+  document.getElementById('xpBarWrap').classList.toggle('show', show);
+  if (show) updateXPBar();
+}
+
+// ================================================================
+//  GLOBAL LEADERBOARD (localStorage cross-session, simulated cross-device)
+// ================================================================
+function getLBData() { try { return JSON.parse(localStorage.getItem('uno_leaderboard') || '[]'); } catch(e){ return []; } }
+function saveLBData(d){ try { localStorage.setItem('uno_leaderboard', JSON.stringify(d)); } catch(e){} }
+function recordWin(name, uid) {
+  const lb = getLBData();
+  let entry = lb.find(e => e.uid === uid);
+  if (!entry) { entry = { uid, name, wins:0, plays:0, xpLevel:1 }; lb.push(entry); }
+  entry.wins++; entry.plays++; entry.name = name;
+  entry.xpLevel = getXP().level;
+  lb.sort((a,b) => b.wins - a.wins);
+  saveLBData(lb);
+}
+function recordPlay(uid, name) {
+  const lb = getLBData();
+  let entry = lb.find(e => e.uid === uid);
+  if (!entry) { entry = { uid, name, wins:0, plays:0, xpLevel:1 }; lb.push(entry); }
+  entry.plays++; entry.name = name; entry.xpLevel = getXP().level;
+  saveLBData(lb);
+}
+function showLeaderboard() {
+  const lb = getLBData();
+  if (!lb.length) {
+    toast('No leaderboard data yet — play some games! 🎮'); return;
+  }
+  const medals = ['🥇','🥈','🥉'];
+  const list = document.getElementById('lbList'); list.innerHTML = '';
+  lb.slice(0,15).forEach((e,i) => {
+    const li = document.createElement('li');
+    li.className = 'lb-item' + (e.uid === myUID ? ' me' : '');
+    const wr = e.plays > 0 ? Math.round((e.wins/e.plays)*100) : 0;
+    li.innerHTML = `<span class="lb-rank">${medals[i]||'#'+(i+1)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.name}</span><span style="font-size:10px;color:rgba(255,255,255,0.35);margin-right:6px">Lv.${e.xpLevel||1}</span><span class="lb-stat"><span class="lb-wins">${e.wins}W</span> · ${wr}%</span>`;
+    list.appendChild(li);
+  });
+  const myRank = lb.findIndex(e => e.uid === myUID);
+  document.getElementById('lbSubtitle').textContent = myRank >= 0 ? `Your rank: #${myRank+1} of ${lb.length}` : 'All-time rankings';
+  document.getElementById('lbPanel').style.display = 'flex';
+}
+
+// ================================================================
+//  REPLAY SYSTEM
+// ================================================================
+let replayLog = [];
+let replayGameStart = 0;
+function replayRecord(icon, text, extraClass) {
+  const elapsed = replayGameStart > 0 ? Math.floor((Date.now()-replayGameStart)/1000) : 0;
+  replayLog.push({ icon, text, time: elapsed, extraClass: extraClass||'' });
+}
+function openReplay() {
+  const tl = document.getElementById('replayTimeline'); tl.innerHTML = '';
+  if (!replayLog.length) { toast('No replay data yet — finish a game first!'); return; }
+  replayLog.forEach(e => {
+    const d = document.createElement('div');
+    d.className = 'replay-event ' + e.extraClass;
+    const mm = String(Math.floor(e.time/60)).padStart(2,'0');
+    const ss = String(e.time%60).padStart(2,'0');
+    d.innerHTML = `<span class="re-icon">${e.icon}</span><span style="flex:1">${e.text}</span><span class="re-time">${mm}:${ss}</span>`;
+    tl.appendChild(d);
+  });
+  tl.scrollTop = tl.scrollHeight;
+  document.getElementById('replayPanel').style.display = 'flex';
+}
+
+// ================================================================
+//  PARTICLE EFFECTS
+// ================================================================
+const CARD_COLORS_HEX = {
+  red:'#e8192c', yellow:'#f5d400', green:'#1e9e46', blue:'#0156a8', wild:'#9333ea'
+};
+function spawnCardParticles(card, x, y) {
+  const col = CARD_COLORS_HEX[card.color] || '#fff';
+  const isSpecial = ['skip','reverse','draw2','wild','wild_draw4'].includes(card.value);
+  const count = isSpecial ? 22 : 10;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    const angle = (Math.PI * 2 / count) * i + (Math.random()-0.5)*0.4;
+    const dist  = 40 + Math.random() * 80;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist - 30;
+    const sz = 5 + Math.random() * 8;
+    p.className = 'particle';
+    p.style.cssText = `left:${x-sz/2}px;top:${y-sz/2}px;width:${sz}px;height:${sz}px;background:${col};--tx:${tx}px;--ty:${ty}px;animation-duration:${0.5+Math.random()*0.5}s;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1100);
+  }
+  if (isSpecial) {
+    const icons = { skip:'⊘', reverse:'↺', draw2:'💥', wild:'✨', wild_draw4:'💫' };
+    const star = document.createElement('div');
+    const stx = (Math.random()-0.5)*60, sty = -50-Math.random()*30;
+    star.className = 'particle-star';
+    star.style.cssText = `left:${x-15}px;top:${y-15}px;--tx:${stx}px;--ty:${sty}px;animation-duration:0.9s;`;
+    star.textContent = icons[card.value] || '✨';
+    document.body.appendChild(star);
+    setTimeout(() => star.remove(), 1000);
+  }
+}
+
+function spawn3DCardFlip(card, fromEl) {
+  const rect = fromEl ? fromEl.getBoundingClientRect() : { left: window.innerWidth/2-31, top: window.innerHeight/2-48 };
+  const flip = document.createElement('div');
+  flip.className = 'card-flip';
+  flip.style.cssText = `left:${rect.left}px;top:${rect.top}px;`;
+  const col = CARD_COLORS_HEX[card.color] || '#333';
+  const sym = { skip:'⊘', reverse:'↺', draw2:'+2', wild:'✦', wild_draw4:'+4' };
+  flip.innerHTML = `<div class="card-flip-face card-flip-front" style="background:linear-gradient(145deg,${col},${col}aa)">${sym[card.value]||card.value}</div><div class="card-flip-face card-flip-back">UNO</div>`;
+  document.body.appendChild(flip);
+  setTimeout(() => flip.remove(), 600);
+  // Also spawn particles at card position
+  setTimeout(() => spawnCardParticles(card, rect.left+31, rect.top+48), 220);
+}
+
+// ================================================================
+//  DYNAMIC BACKGROUND
+// ================================================================
+function setDynamicBg(color) {
+  document.body.className = document.body.className.replace(/bg-\S+/g, '').trim();
+  if (color) document.body.classList.add('bg-' + color);
+}
+
+// ================================================================
+//  VOICE CHAT (WebRTC)
+// ================================================================
+let vcActive = false, vcStream = null;
+let vcPeers = {}, vcSpeakTimers = {};
+let vcSocket = null; // reuse main socket for signaling
+const VC_ROOM_PREFIX = 'vc_';
+
+function toggleVoice() {
+  if (vcActive) { stopVoice(); }
+  else { startVoice(); }
+}
+
+async function startVoice() {
+  try {
+    vcStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    vcActive = true;
+    document.getElementById('vcBtn').classList.add('active');
+    document.getElementById('vcBtn').textContent = '🎙️';
+    toast('🎙️ Mic on — others can hear you!');
+    setupVAD();
+    // Notify room via socket that we joined voice
+    socket.emit('vc_join', { name: myName, uid: myUID });
+  } catch(err) {
+    toast('Mic access denied — check browser settings 🎙️');
+  }
+}
+
+function stopVoice() {
+  if (vcStream) { vcStream.getTracks().forEach(t => t.stop()); vcStream = null; }
+  Object.values(vcPeers).forEach(pc => { try { pc.close(); } catch(e){} });
+  vcPeers = {};
+  vcActive = false;
+  document.getElementById('vcBtn').classList.remove('active','speaking');
+  document.getElementById('vcBtn').textContent = '🎙️';
+  document.getElementById('vcIndicators').innerHTML = '';
+  socket.emit('vc_leave');
+  toast('🔇 Mic off');
+}
+
+function setupVAD() {
+  if (!vcStream) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(vcStream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    let speaking = false;
+    setInterval(() => {
+      if (!vcActive) return;
+      analyser.getByteFrequencyData(data);
+      const vol = data.reduce((a,b) => a+b, 0) / data.length;
+      const isSpeaking = vol > 20;
+      if (isSpeaking !== speaking) {
+        speaking = isSpeaking;
+        document.getElementById('vcBtn').classList.toggle('speaking', speaking);
+        socket.emit('vc_speaking', { speaking, name: myName });
+      }
+    }, 150);
+  } catch(e) {}
+}
+
+// VC signaling via socket
+function createVCPeer(targetId, initiator) {
+  if (!vcStream) return null;
+  try {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    vcStream.getTracks().forEach(t => pc.addTrack(t, vcStream));
+    pc.ontrack = e => {
+      const audio = new Audio();
+      audio.srcObject = e.streams[0];
+      audio.autoplay = true;
+      document.body.appendChild(audio);
+      pc._audioEl = audio;
+    };
+    pc.onicecandidate = e => {
+      if (e.candidate) socket.emit('vc_ice', { to: targetId, candidate: e.candidate });
+    };
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+        if (pc._audioEl) pc._audioEl.remove();
+        delete vcPeers[targetId];
+      }
+    };
+    if (initiator) {
+      pc.createOffer().then(offer => {
+        pc.setLocalDescription(offer);
+        socket.emit('vc_offer', { to: targetId, offer });
+      });
+    }
+    vcPeers[targetId] = pc;
+    return pc;
+  } catch(e) { return null; }
+}
+
+function updateVCIndicator(id, name, speaking) {
+  const wrap = document.getElementById('vcIndicators');
+  let pip = document.getElementById('vc_' + id);
+  if (!pip) {
+    pip = document.createElement('div');
+    pip.className = 'vc-pip';
+    pip.id = 'vc_' + id;
+    pip.innerHTML = `<div class="vc-mic-dot"></div><span>${name}</span>`;
+    wrap.appendChild(pip);
+  }
+  pip.classList.toggle('speaking', speaking);
+  clearTimeout(vcSpeakTimers[id]);
+  if (speaking) { vcSpeakTimers[id] = setTimeout(() => pip.classList.remove('speaking'), 1200); }
+}
+
+// VC socket events
+socket.on('vc_joined',    ({ id, name }) => { if (vcActive && id !== socket.id) createVCPeer(id, true); toast(`${name} joined voice 🎙️`); });
+socket.on('vc_left',      ({ id, name }) => {
+  if (vcPeers[id]) { try { vcPeers[id].close(); if (vcPeers[id]._audioEl) vcPeers[id]._audioEl.remove(); } catch(e){} delete vcPeers[id]; }
+  const pip = document.getElementById('vc_'+id); if (pip) pip.remove();
+  toast(`${name} left voice 🔇`);
+});
+socket.on('vc_offer',     async ({ from, offer }) => {
+  const pc = createVCPeer(from, false) || vcPeers[from];
+  if (!pc) return;
+  await pc.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  socket.emit('vc_answer', { to: from, answer });
+});
+socket.on('vc_answer',    async ({ from, answer }) => {
+  const pc = vcPeers[from]; if (!pc) return;
+  await pc.setRemoteDescription(new RTCSessionDescription(answer));
+});
+socket.on('vc_ice',       async ({ from, candidate }) => {
+  const pc = vcPeers[from]; if (!pc) return;
+  try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+});
+socket.on('vc_speaking',  ({ id, name, speaking }) => updateVCIndicator(id, name, speaking));
+
+// ================================================================
+//  AI BOT — simple client-side solo practice mode
+// ================================================================
+let botActive = false, botHand = [], botTurnTimer = null;
+function startBotMode() {
+  // Stub: In full implementation would add a bot player to a solo room
+  toast('🤖 AI Bot mode — coming with server update!');
+}
 
 // ================================================================
 //  SOCKET EVENTS
@@ -674,8 +1094,8 @@ socket.on('game_start',      data => receiveStart(data));
 socket.on('game_rejoin',     data => receiveRejoin(data));
 socket.on('game_state',      data => applyState(data));
 socket.on('your_hand',       ({ hand }) => { myHand = hand; renderHand(); });
-socket.on('action_banner',   ({ msg }) => showBanner(msg));
-socket.on('uno_called',      ({ id }) => { showBanner(`${getName(id)} UNO! 🎉`); sfx('uno'); });
+socket.on('action_banner',   ({ msg }) => { showBanner(msg); replayRecord('📢', msg); });
+socket.on('uno_called',      ({ id }) => { showBanner(`${getName(id)} UNO! 🎉`); sfx('uno'); replayRecord('🔴', `${getName(id)} called UNO!`); });
 socket.on('chat',            ({ name, text, system }) => addChat(name, text, system));
 socket.on('reaction',        ({ emoji, name }) => floatEmoji(emoji, name));
 socket.on('rematch_count',   ({ votes, total }) => {
@@ -688,8 +1108,21 @@ socket.on('rematch_go',      () => {
 });
 socket.on('game_over',       ({ finishOrder: fo }) => {
   finishOrder = fo; gameActive = false; stopMusic();
-  sfx(fo[0] === socket.id ? 'win' : 'lose');
-  showGameOver(fo[0] === socket.id);
+  const iWon = fo[0] === socket.id;
+  sfx(iWon ? 'win' : 'lose');
+  setDynamicBg(iWon ? 'win' : '');
+  // XP + leaderboard
+  if (iWon) {
+    addXP(50, 'win!');
+    recordWin(myName, myUID);
+    replayRecord('🏆', `${myName} won the game!`, 're-win');
+  } else {
+    const pos = fo.indexOf(socket.id) + 1;
+    addXP(Math.max(5, 30 - (pos-1)*8), 'participation');
+    replayRecord('💀', `Game over — you finished #${pos}`);
+  }
+  showXPBar(false);
+  showGameOver(iWon);
 });
 
 // ================================================================
@@ -723,6 +1156,9 @@ function leaveLobby() {
   document.getElementById('lobbyScreen').classList.add('hidden');
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
+  showXPBar(false);
+  setDynamicBg('');
+  if (vcActive) stopVoice();
   stopMusic();
 }
 
@@ -735,6 +1171,12 @@ function receiveStart(data) {
   discardTop = data.discardTop; deckCount = data.deckCount; handCounts = data.handCounts || {};
   finishOrder = []; gameActive = true; unoFlags = {};
   lobbyPlayers = data.players || lobbyPlayers;
+  // Replay + XP init
+  replayLog = []; replayGameStart = Date.now();
+  replayRecord('🎮', 'Game started!', '');
+  recordPlay(myUID, myName);
+  showXPBar(true);
+  setDynamicBg(data.currentColor || 'green');
   showGame(); renderGame(); startTheme();
   addChat(null, 'Game started! Good luck! 🃏', true);
 }
@@ -747,6 +1189,7 @@ function receiveRejoin(data) {
   showGame(); renderGame(); startTheme(); toast('Reconnected! 🔄');
 }
 function applyState(data) {
+  const prevColor = currentColor;
   currentTurnIdx = data.currentTurnIdx; direction = data.direction;
   currentColor   = data.currentColor;   currentValue = data.currentValue;
   if (data.discardTop  !== undefined) discardTop  = data.discardTop;
@@ -755,6 +1198,8 @@ function applyState(data) {
   if (data.finishOrder) finishOrder = data.finishOrder;
   if (data.unoFlags)    unoFlags    = data.unoFlags;
   if (data.handCounts)  handCounts  = data.handCounts;
+  // Dynamic background on color change
+  if (currentColor !== prevColor) setDynamicBg(currentColor);
   renderGame(); checkTension();
 }
 function applyLeave(id) {
@@ -791,11 +1236,18 @@ function onCardTap(card, el) {
     if (card.value === 'wild' || card.value === 'wild_draw4') {
       pendingWild = card; document.getElementById('colorModal').style.display = 'flex';
     } else {
+      // 3D flip + particles
+      spawn3DCardFlip(card, el);
       socket.emit('play_card', { card, chosenColor: null });
       const i = myHand.findIndex(c => c.color === card.color && c.value === card.value);
       if (i !== -1) myHand.splice(i, 1); renderHand();
       const dp = document.getElementById('discardPile');
       dp.classList.add('pop-in'); setTimeout(() => dp.classList.remove('pop-in'), 320);
+      // Replay log
+      replayRecord('🃏', `You played ${card.color} ${card.value}`);
+      // XP for playing a card
+      const xpAmt = ['skip','reverse','draw2','wild','wild_draw4'].includes(card.value) ? 5 : 2;
+      addXP(xpAmt, 'card played');
     }
   } else {
     sfx('touch'); selectedCard = card; renderHand();
@@ -806,21 +1258,31 @@ function pickColor(color) {
   document.getElementById('colorModal').style.display = 'none';
   if (!pendingWild) return;
   const c = pendingWild; pendingWild = null;
+  // 3D flip + particles at discard pile position
+  const dp = document.getElementById('discardPile');
+  spawn3DCardFlip(c, dp);
   socket.emit('play_card', { card:c, chosenColor:color });
   const i = myHand.findIndex(h => h.color === c.color && h.value === c.value);
   if (i !== -1) myHand.splice(i, 1); renderHand();
-  const dp = document.getElementById('discardPile');
   dp.classList.add('pop-in'); setTimeout(() => dp.classList.remove('pop-in'), 320);
+  // Replay + XP
+  replayRecord('✨', `You played ${c.value} → chose ${color}`);
+  addXP(8, 'wild played');
+  setDynamicBg(color);
 }
 
 function playerDraw() {
   if (!isMyTurn()) return;
   sfx('draw'); socket.emit('draw_card'); selectedCard = null;
+  replayRecord('🃏', 'You drew a card');
+  addXP(1, 'draw');
 }
 
 function callUno() {
   if (!gameActive || myHand.length !== 2) return;
   sfx('uno'); toast('UNO! 🎉'); socket.emit('call_uno');
+  addXP(15, 'UNO called');
+  replayRecord('🔴', 'You called UNO!');
 }
 
 // ================================================================
@@ -913,6 +1375,8 @@ function showGame() {
     img.style.cssText = 'width:22px;height:22px;border-radius:50%;object-fit:cover;';
     avEl.appendChild(img);
   } else { avEl.textContent = myAvatar || '🎮'; }
+  showXPBar(true);
+  updateXPBar();
 }
 
 // ================================================================
