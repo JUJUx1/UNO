@@ -344,17 +344,6 @@ body.bg-win { background: radial-gradient(ellipse at 50% 50%, #4a3a0a 0%, #2a1a0
 .lb-wins { color:var(--gold); font-weight:900; }
 .lb-close { display:block; width:100%; background:rgba(255,255,255,0.09); color:white; border:1.5px solid rgba(255,255,255,0.18); border-radius:14px; padding:12px; font-family:'Nunito',sans-serif; font-weight:900; font-size:14px; cursor:pointer; }
 
-/* ===== VOICE CHAT ===== */
-.vc-btn { position:fixed; top:calc(env(safe-area-inset-top,0) + 8px); right:92px; z-index:150; width:36px; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.18); border-radius:8px; color:white; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); transition:background 0.2s, border-color 0.2s; }
-.vc-btn.active { background:rgba(232,25,44,0.3); border-color:rgba(232,25,44,0.6); }
-.vc-btn.speaking { animation:vcPulse 0.6s ease-in-out infinite; }
-@keyframes vcPulse { 0%,100%{box-shadow:0 0 0 0 rgba(232,25,44,0.4);} 50%{box-shadow:0 0 0 8px rgba(232,25,44,0);} }
-.vc-indicators { position:fixed; top:calc(env(safe-area-inset-top,0) + 52px); right:10px; z-index:150; display:flex; flex-direction:column; gap:4px; pointer-events:none; }
-.vc-pip { display:flex; align-items:center; gap:5px; background:rgba(0,0,0,0.7); border-radius:20px; padding:3px 8px 3px 5px; font-family:'Nunito',sans-serif; font-weight:800; font-size:10px; border:1px solid rgba(255,255,255,0.1); opacity:0; transition:opacity 0.3s; }
-.vc-pip.speaking { opacity:1; border-color:rgba(30,200,70,0.5); }
-.vc-mic-dot { width:7px; height:7px; border-radius:50%; background:#2ecc71; animation:micBlink 0.4s ease-in-out infinite; }
-@keyframes micBlink { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
-
 /* ===== AI BOT ===== */
 .ai-badge { background:linear-gradient(135deg,#7c3aed,#4c1d95); color:white; font-size:9px; font-family:'Nunito',sans-serif; font-weight:900; padding:1px 5px; border-radius:5px; }
 
@@ -595,10 +584,6 @@ body.bg-win { background: radial-gradient(ellipse at 50% 50%, #4a3a0a 0%, #2a1a0
     <span style="font-size:10px;color:rgba(255,255,255,0.35);font-family:'Nunito',sans-serif;font-weight:700;white-space:nowrap" id="xpText">0 XP</span>
   </div>
 </div>
-
-<!-- Voice Chat Button -->
-<button class="vc-btn" id="vcBtn" onclick="toggleVoice()" title="Voice Chat">🎙️</button>
-<div class="vc-indicators" id="vcIndicators"></div>
 
 <!-- Leaderboard Button -->
 <button class="lb-btn" onclick="showLeaderboard()" title="Leaderboard">🏆</button>
@@ -916,142 +901,6 @@ function setDynamicBg(color) {
   if (color) document.body.classList.add('bg-' + color);
 }
 
-// ================================================================
-//  VOICE CHAT (WebRTC)
-// ================================================================
-let vcActive = false, vcStream = null;
-let vcPeers = {}, vcSpeakTimers = {};
-let vcSocket = null; // reuse main socket for signaling
-const VC_ROOM_PREFIX = 'vc_';
-
-function toggleVoice() {
-  if (vcActive) { stopVoice(); }
-  else { startVoice(); }
-}
-
-async function startVoice() {
-  try {
-    vcStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    vcActive = true;
-    document.getElementById('vcBtn').classList.add('active');
-    document.getElementById('vcBtn').textContent = '🎙️';
-    toast('🎙️ Mic on — others can hear you!');
-    setupVAD();
-    // Notify room via socket that we joined voice
-    socket.emit('vc_join', { name: myName, uid: myUID });
-  } catch(err) {
-    toast('Mic access denied — check browser settings 🎙️');
-  }
-}
-
-function stopVoice() {
-  if (vcStream) { vcStream.getTracks().forEach(t => t.stop()); vcStream = null; }
-  Object.values(vcPeers).forEach(pc => { try { pc.close(); } catch(e){} });
-  vcPeers = {};
-  vcActive = false;
-  document.getElementById('vcBtn').classList.remove('active','speaking');
-  document.getElementById('vcBtn').textContent = '🎙️';
-  document.getElementById('vcIndicators').innerHTML = '';
-  socket.emit('vc_leave');
-  toast('🔇 Mic off');
-}
-
-function setupVAD() {
-  if (!vcStream) return;
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = ctx.createMediaStreamSource(vcStream);
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    src.connect(analyser);
-    const data = new Uint8Array(analyser.frequencyBinCount);
-    let speaking = false;
-    setInterval(() => {
-      if (!vcActive) return;
-      analyser.getByteFrequencyData(data);
-      const vol = data.reduce((a,b) => a+b, 0) / data.length;
-      const isSpeaking = vol > 20;
-      if (isSpeaking !== speaking) {
-        speaking = isSpeaking;
-        document.getElementById('vcBtn').classList.toggle('speaking', speaking);
-        socket.emit('vc_speaking', { speaking, name: myName });
-      }
-    }, 150);
-  } catch(e) {}
-}
-
-// VC signaling via socket
-function createVCPeer(targetId, initiator) {
-  if (!vcStream) return null;
-  try {
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-    vcStream.getTracks().forEach(t => pc.addTrack(t, vcStream));
-    pc.ontrack = e => {
-      const audio = new Audio();
-      audio.srcObject = e.streams[0];
-      audio.autoplay = true;
-      document.body.appendChild(audio);
-      pc._audioEl = audio;
-    };
-    pc.onicecandidate = e => {
-      if (e.candidate) socket.emit('vc_ice', { to: targetId, candidate: e.candidate });
-    };
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        if (pc._audioEl) pc._audioEl.remove();
-        delete vcPeers[targetId];
-      }
-    };
-    if (initiator) {
-      pc.createOffer().then(offer => {
-        pc.setLocalDescription(offer);
-        socket.emit('vc_offer', { to: targetId, offer });
-      });
-    }
-    vcPeers[targetId] = pc;
-    return pc;
-  } catch(e) { return null; }
-}
-
-function updateVCIndicator(id, name, speaking) {
-  const wrap = document.getElementById('vcIndicators');
-  let pip = document.getElementById('vc_' + id);
-  if (!pip) {
-    pip = document.createElement('div');
-    pip.className = 'vc-pip';
-    pip.id = 'vc_' + id;
-    pip.innerHTML = `<div class="vc-mic-dot"></div><span>${name}</span>`;
-    wrap.appendChild(pip);
-  }
-  pip.classList.toggle('speaking', speaking);
-  clearTimeout(vcSpeakTimers[id]);
-  if (speaking) { vcSpeakTimers[id] = setTimeout(() => pip.classList.remove('speaking'), 1200); }
-}
-
-// VC socket events
-socket.on('vc_joined',    ({ id, name }) => { if (vcActive && id !== socket.id) createVCPeer(id, true); toast(`${name} joined voice 🎙️`); });
-socket.on('vc_left',      ({ id, name }) => {
-  if (vcPeers[id]) { try { vcPeers[id].close(); if (vcPeers[id]._audioEl) vcPeers[id]._audioEl.remove(); } catch(e){} delete vcPeers[id]; }
-  const pip = document.getElementById('vc_'+id); if (pip) pip.remove();
-  toast(`${name} left voice 🔇`);
-});
-socket.on('vc_offer',     async ({ from, offer }) => {
-  const pc = createVCPeer(from, false) || vcPeers[from];
-  if (!pc) return;
-  await pc.setRemoteDescription(new RTCSessionDescription(offer));
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  socket.emit('vc_answer', { to: from, answer });
-});
-socket.on('vc_answer',    async ({ from, answer }) => {
-  const pc = vcPeers[from]; if (!pc) return;
-  await pc.setRemoteDescription(new RTCSessionDescription(answer));
-});
-socket.on('vc_ice',       async ({ from, candidate }) => {
-  const pc = vcPeers[from]; if (!pc) return;
-  try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
-});
-socket.on('vc_speaking',  ({ id, name, speaking }) => updateVCIndicator(id, name, speaking));
 
 // ================================================================
 //  AI BOT — client helper (actual logic runs server-side)
@@ -1163,7 +1012,6 @@ function leaveLobby() {
   document.getElementById('loginScreen').classList.remove('hidden');
   showXPBar(false);
   setDynamicBg('');
-  if (vcActive) stopVoice();
   stopMusic();
 }
 
