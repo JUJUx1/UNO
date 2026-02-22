@@ -750,20 +750,35 @@ body::before {
 // ================================================================
 //  CONFIG — replace with your actual Render.com URL
 // ================================================================
-const SERVER_URL = 'https://YOUR-APP-NAME.onrender.com';
+const SERVER_URL = 'https://uno-q4qa.onrender.com';
 
 // ================================================================
 //  SOCKET.IO CONNECTION
 // ================================================================
 const socket = io(SERVER_URL, {
-  transports: ['websocket','polling'],
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1500,
+  transports: ['polling', 'websocket'], // polling first — works on Render free tier
+  upgrade: true,
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 20000,
+  forceNew: false,
+  withCredentials: false,
 });
 
-socket.on('connect', () => { hideConn(); });
-socket.on('disconnect', () => { showConn('Reconnecting…'); });
-socket.on('connect_error', () => { showConn('Connection lost…'); });
+socket.on('connect', () => {
+  hideConn();
+  mySocketId = socket.id;
+  toast('Connected! ✅');
+});
+socket.on('disconnect', (reason) => {
+  showConn('Reconnecting… ' + reason);
+});
+socket.on('connect_error', (err) => {
+  showConn('Connection error — retrying…');
+  console.error('Socket error:', err.message);
+});
 
 // ================================================================
 //  CARD VISUALS
@@ -816,7 +831,7 @@ let finishOrder=[], gameActive=false, unoFlags={};
 let selectedCard=null, pendingWild=null;
 let rematchVotes=new Set();
 
-socket.on('connect', () => { mySocketId = socket.id; });
+// mySocketId is set in the main connect handler above
 
 // ================================================================
 //  SERVER EVENTS
