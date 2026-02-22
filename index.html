@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>UNO — Multiplayer</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<!-- Socket.io replaces PeerJS -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <style>
 :root {
   --card-w: 62px; --card-h: 96px; --radius: 10px;
@@ -270,9 +271,8 @@ body::before {
 .opp-name { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 
 .opp-cards { display: flex; justify-content: center; margin-bottom: 3px; min-height: 24px; }
-.opp-cm { width: 14px; height: 23px; border-radius: 3px; margin-left: -4px; border: 1px solid rgba(255,255,255,0.2); overflow: hidden; flex-shrink: 0; }
+.opp-cm { width: 14px; height: 23px; border-radius: 3px; margin-left: -4px; border: 1px solid rgba(255,255,255,0.2); overflow: hidden; flex-shrink: 0; background: linear-gradient(145deg,#9b0f1b,#600010); }
 .opp-cm:first-child { margin-left: 0; }
-.opp-cm img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
 .opp-cnt { font-size: 9px; color: rgba(255,255,255,0.45); font-weight: 700; text-align: center; }
 .opp-uno-badge {
@@ -303,8 +303,9 @@ body::before {
 .deck-stack .sh { position: absolute; inset: 0; border-radius: var(--radius); background: rgba(0,0,0,0.3); }
 .deck-stack .sh:nth-child(1) { transform: translate(4px,4px); }
 .deck-stack .sh:nth-child(2) { transform: translate(2px,2px); }
-.deck-top { position: absolute; inset: 0; border-radius: var(--radius); overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.6); transition: transform 0.15s; }
-.deck-top img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.deck-top { position: absolute; inset: 0; border-radius: var(--radius); overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.6); transition: transform 0.15s;
+  background: linear-gradient(145deg,#9b0f1b,#600010); display:flex; align-items:center; justify-content:center;
+  font-family:Nunito,sans-serif; font-weight:900; font-size:13px; color:#f5d400; }
 .deck-stack:active .deck-top { transform: scale(0.93) translateY(3px); }
 .deck-remaining { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 2px; }
 .discard-pile { width: var(--card-w); height: var(--card-h); border-radius: var(--radius); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: box-shadow 0.35s; }
@@ -325,15 +326,13 @@ body::before {
   -webkit-overflow-scrolling: touch; scrollbar-width: none;
   padding: 36px 20px 8px;
   min-height: calc(var(--card-h) + 44px);
-  /* critical: don't clip lifted cards */
   clip-path: none;
 }
 .hand-container::-webkit-scrollbar { display: none; }
-/* Center cards when they fit; scroll when they don't */
 .hand-inner {
   display: flex; align-items: flex-end;
   min-width: min-content;
-  margin: 0 auto; /* centers when few cards */
+  margin: 0 auto;
 }
 .hand-card {
   width: var(--card-w); height: var(--card-h); border-radius: var(--radius); flex-shrink: 0;
@@ -343,7 +342,6 @@ body::before {
   transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, filter 0.2s;
 }
 .hand-card:first-child { margin-left: 0; }
-.hand-card img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius); display: block; pointer-events: none; }
 .hand-card.playable:hover { transform: translateY(-18px) scale(1.07); z-index: 50; box-shadow: 0 14px 28px rgba(0,0,0,0.6); }
 .hand-card.dead { filter: brightness(0.38) saturate(0.3); cursor: not-allowed; }
 .hand-card.selected { animation: cardPickUp 0.32s cubic-bezier(0.34,1.56,0.64,1) forwards; z-index: 60; }
@@ -384,7 +382,6 @@ body::before {
 .btn-act:hover:not(:disabled) { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
 .btn-act:active:not(:disabled) { transform: scale(0.93); }
 .btn-act:disabled { opacity: 0.3; cursor: not-allowed; }
-.btn-act img { height: 38px; width: auto; display: block; pointer-events: none; }
 .btn-act-fallback { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 14px; color: white; padding: 0 18px; }
 
 #btnDraw { background: linear-gradient(145deg,#1a6a9e,#0d4060); border-color: rgba(255,255,255,0.12); }
@@ -495,11 +492,8 @@ body::before {
 .float-emoji { position: fixed; font-size: 30px; pointer-events: none; z-index: 800; animation: floatUp 2s ease forwards; }
 @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 80%{opacity:1;} 100%{opacity:0;transform:translateY(-90px) scale(1.4);} }
 
-/* ── Inline mic icon per player ── */
-.player-mic {
-  font-size: 11px; opacity: 0.28; transition: opacity 0.2s, filter 0.2s;
-  line-height: 1; flex-shrink: 0; pointer-events: none;
-}
+/* Inline mic icon per player */
+.player-mic { font-size: 11px; opacity: 0.28; transition: opacity 0.2s, filter 0.2s; line-height: 1; flex-shrink: 0; pointer-events: none; }
 .player-mic.active   { opacity: 0.7; }
 .player-mic.speaking { opacity: 1; filter: drop-shadow(0 0 4px #2ecc71); animation: micPulse 0.5s ease-in-out infinite alternate; }
 .player-mic.muted    { opacity: 0.25; filter: grayscale(1); }
@@ -508,7 +502,7 @@ body::before {
 /* Fullscreen */
 .fs-btn { position: fixed; bottom: 10px; right: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; color: white; font-size: 15px; cursor: pointer; z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
 
-/* ── Skip/Reverse notification banner ── */
+/* Skip/Reverse notification banner */
 .action-banner {
   position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px);
   background: rgba(8,8,18,0.92); border: 1.5px solid rgba(255,215,0,0.3);
@@ -519,7 +513,6 @@ body::before {
 }
 .action-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Responsive */
 @media (max-height: 680px) {
   :root { --card-w: 54px; --card-h: 83px; }
   .hand-container { padding: 15px 10px 3px; }
@@ -542,7 +535,6 @@ body::before {
       <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">🔑 Login</button>
       <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">✨ Register</button>
     </div>
-
     <!-- LOGIN -->
     <div id="authLoginForm">
       <div class="avatar-upload-wrap">
@@ -556,7 +548,6 @@ body::before {
       <button class="btn-gold" onclick="doLogin()">🎮 Let's Play!</button>
       <div class="err-box" id="loginAuthError"></div>
     </div>
-
     <!-- REGISTER -->
     <div id="authRegisterForm" style="display:none">
       <div class="avatar-upload-wrap">
@@ -577,7 +568,7 @@ body::before {
 </div>
 </div>
 
-<!-- ═══ LOGIN ═══ -->
+<!-- ═══ LOGIN / JOIN ═══ -->
 <div id="loginScreen" class="screen hidden">
 <div class="screen-inner">
   <div class="big-logo">UNO</div>
@@ -627,7 +618,7 @@ body::before {
       <div class="setting-box"><label>Cards each</label><select id="settingCards"><option value="5">5 cards</option><option value="7" selected>7 cards</option><option value="10">10 cards</option></select></div>
       <div class="setting-box"><label>Stacking</label><select id="settingStack"><option value="off">Off</option><option value="on">On (house)</option></select></div>
     </div>
-    <button class="btn-gold" id="btnStartGame" onclick="startMultiplayerGame()" disabled>🚀 Start Game</button>
+    <button class="btn-gold" id="btnStartGame" onclick="startGame()" disabled>🚀 Start Game</button>
     <button class="btn-ghost" onclick="leaveLobby()">← Leave</button>
   </div>
 </div>
@@ -651,9 +642,7 @@ body::before {
       <div class="pile-label">Draw Pile</div>
       <div class="deck-stack" onclick="playerDraw()">
         <div class="sh"></div><div class="sh"></div>
-        <div class="deck-top">
-          <img src="assets/card_back.png" alt="deck" onerror="this.style.display='none';this.parentNode.style.background='linear-gradient(145deg,#1a3a8a,#0d2060)'">
-        </div>
+        <div class="deck-top">UNO</div>
       </div>
       <div class="deck-remaining" id="deckRemaining">— left</div>
     </div>
@@ -677,7 +666,6 @@ body::before {
         <div id="yourUnoBadge" style="display:none;background:var(--red);color:white;font-family:Nunito,sans-serif;font-weight:900;font-size:10px;padding:2px 7px;border-radius:8px;animation:unoFlash 0.6s ease-in-out infinite alternate">UNO!</div>
       </div>
     </div>
-    <!-- Turn indicator sits right above the cards -->
     <div class="turn-bar">
       <div class="turn-pill" id="turnLabel">—</div>
     </div>
@@ -687,12 +675,10 @@ body::before {
 
   <div class="action-bar">
     <button class="btn-act" id="btnDraw" onclick="playerDraw()" disabled>
-      <img src="assets/btn_draw.png" alt="Draw"
-        onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=btn-act-fallback>🃏 Draw</span>')">
+      <span class="btn-act-fallback">🃏 Draw</span>
     </button>
     <button class="btn-act" id="btnUno" onclick="callUno()" disabled>
-      <img src="assets/btn_uno.png" alt="UNO!"
-        onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=btn-act-fallback>🔴 UNO!</span>')">
+      <span class="btn-act-fallback">🔴 UNO!</span>
     </button>
     <button class="btn-act" id="btnMic" onclick="toggleVoice()" title="Voice Call">🎤</button>
     <button class="btn-act" id="btnChat" onclick="toggleChat()">💬</button>
@@ -716,10 +702,10 @@ body::before {
     <div class="modal-ttl">🎨 Choose a Color</div>
     <div class="modal-sub">Pick the active color for your wild</div>
     <div class="color-grid">
-      <button class="color-btn cb-r" onclick="sfx('cardTouch');pickColor('red')">🔴 Red</button>
-      <button class="color-btn cb-y" onclick="sfx('cardTouch');pickColor('yellow')">🟡 Yellow</button>
-      <button class="color-btn cb-g" onclick="sfx('cardTouch');pickColor('green')">🟢 Green</button>
-      <button class="color-btn cb-b" onclick="sfx('cardTouch');pickColor('blue')">🔵 Blue</button>
+      <button class="color-btn cb-r" onclick="pickColor('red')">🔴 Red</button>
+      <button class="color-btn cb-y" onclick="pickColor('yellow')">🟡 Yellow</button>
+      <button class="color-btn cb-g" onclick="pickColor('green')">🟢 Green</button>
+      <button class="color-btn cb-b" onclick="pickColor('blue')">🔵 Blue</button>
     </div>
   </div>
 </div>
@@ -758,33 +744,211 @@ body::before {
   </div>
 </div>
 
-
 <button class="fs-btn" onclick="toggleFS()">⛶</button>
 
 <script>
 // ================================================================
-//  SOUNDS
+//  CONFIG — replace with your actual Render.com URL
 // ================================================================
-const SND={};
-function loadSnd(k,src,loop,vol){const a=new Audio(src);a.preload='auto';if(loop)a.loop=true;a.volume=vol||1;SND[k]=a;}
-loadSnd('theme','assets/Theme_song.mp3',true,0.35);
-loadSnd('last','assets/Last_card.mp3',true,0.95);
-loadSnd('touch','assets/Card_touch.mp3',false,0.75);
-loadSnd('play','assets/Card_play.mp3',false,1.0);
-loadSnd('draw','assets/Draw.mp3',false,0.85);
-loadSnd('uno','assets/Uno.mp3',false,1.0);
-loadSnd('win','assets/Win.mp3',false,1.0);
-loadSnd('lose','assets/Lose.mp3',false,1.0);
+const SERVER_URL = 'https://YOUR-APP-NAME.onrender.com';
 
-let themeOn=false,tensionOn=false;
-function sfx(k){try{const s=SND[k];if(!s)return;const c=s.cloneNode();c.volume=s.volume;c.play().catch(()=>{});}catch(e){}}
-function fadeTo(a,t,ms){const st=a.volume,df=t-st,N=25;let i=0;const iv=setInterval(()=>{i++;a.volume=Math.max(0,Math.min(1,st+df*(i/N)));if(i>=N)clearInterval(iv);},ms/N);}
-function startTheme(){if(themeOn)return;themeOn=true;const t=SND['theme'];t.currentTime=0;t.volume=0;t.play().then(()=>fadeTo(t,0.35,1200)).catch(()=>{});}
-function stopMusic(){fadeTo(SND['theme'],0,500);setTimeout(()=>SND['theme'].pause(),550);if(tensionOn){fadeTo(SND['last'],0,400);setTimeout(()=>{SND['last'].pause();SND['last'].currentTime=0;},450);tensionOn=false;}}
+// ================================================================
+//  SOCKET.IO CONNECTION
+// ================================================================
+const socket = io(SERVER_URL, {
+  transports: ['websocket','polling'],
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1500,
+});
+
+socket.on('connect', () => { hideConn(); });
+socket.on('disconnect', () => { showConn('Reconnecting…'); });
+socket.on('connect_error', () => { showConn('Connection lost…'); });
+
+// ================================================================
+//  CARD VISUALS
+// ================================================================
+const FB  = {red:'#e8192c',yellow:'#f5d400',green:'#1e9e46',blue:'#0156a8',wild:'#333'};
+const SYM = {skip:'⊘',reverse:'↺',draw2:'+2',wild:'✦',wild_draw4:'+4'};
+const CMETA = {
+  red:   {hex:'#e8192c',glow:'rgba(232,25,44,0.6)',   lbl:'Red'},
+  yellow:{hex:'#f5d400',glow:'rgba(245,212,0,0.6)',   lbl:'Yellow'},
+  green: {hex:'#1e9e46',glow:'rgba(30,158,70,0.6)',   lbl:'Green'},
+  blue:  {hex:'#0156a8',glow:'rgba(1,86,168,0.6)',    lbl:'Blue'},
+};
+
+function makeCardEl(card){
+  const w=document.createElement('div');
+  w.style.cssText=`width:100%;height:100%;border-radius:inherit;overflow:hidden;background:${FB[card.color]||'#333'};display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Nunito,sans-serif;`;
+  const center=document.createElement('div');
+  center.style.cssText='font-weight:900;font-size:clamp(18px,4vw,28px);color:white;text-shadow:0 2px 6px rgba(0,0,0,0.4);';
+  center.textContent=SYM[card.value]||card.value;
+  const corner=document.createElement('div');
+  corner.style.cssText='position:absolute;top:5px;left:7px;font-weight:900;font-size:10px;color:white;opacity:0.85;';
+  corner.textContent=SYM[card.value]||card.value;
+  w.style.position='relative';
+  w.appendChild(center);w.appendChild(corner);
+  // Wild: 4-color stripes
+  if(card.color==='wild'){
+    w.style.background='linear-gradient(135deg,#e8192c 25%,#f5d400 25%,#f5d400 50%,#1e9e46 50%,#1e9e46 75%,#0156a8 75%)';
+    center.style.color='white';center.style.textShadow='0 2px 8px rgba(0,0,0,0.7)';
+    center.style.background='rgba(0,0,0,0.3)';center.style.borderRadius='50%';center.style.padding='6px 10px';
+  }
+  return w;
+}
+
+function makeBackEl(){
+  const w=document.createElement('div');
+  w.style.cssText='width:100%;height:100%;border-radius:inherit;background:linear-gradient(145deg,#c0001a,#600010);display:flex;align-items:center;justify-content:center;font-family:Nunito,sans-serif;font-weight:900;font-size:16px;color:#f5d400;text-shadow:0 2px 6px rgba(0,0,0,0.5);letter-spacing:1px;';
+  w.textContent='UNO';
+  return w;
+}
+
+// ================================================================
+//  STATE
+// ================================================================
+let mySocketId=null, myName='Player', myAvatar='🎮', myUID=null;
+let isHost=false, currentRoomCode=null;
+let lobbyPlayers=[], gameSettings={cards:7,stacking:false};
+let myHand=[], handCounts={}, turnOrder=[], currentTurnIdx=0, direction=1;
+let currentColor='', currentValue='', discardTop=null, deckCount=0;
+let finishOrder=[], gameActive=false, unoFlags={};
+let selectedCard=null, pendingWild=null;
+let rematchVotes=new Set();
+
+socket.on('connect', () => { mySocketId = socket.id; });
+
+// ================================================================
+//  SERVER EVENTS
+// ================================================================
+socket.on('error_msg', ({msg}) => { hideConn(); showErr(msg); toast(msg); });
+
+socket.on('room_created', ({code, players, settings}) => {
+  hideConn();
+  currentRoomCode=code; isHost=true;
+  lobbyPlayers=players; gameSettings=settings;
+  showLobby();
+});
+
+socket.on('lobby_state', ({players, settings, code}) => {
+  hideConn();
+  currentRoomCode=code; isHost=false;
+  lobbyPlayers=players; gameSettings=settings;
+  showLobby();
+});
+
+socket.on('player_joined', ({player}) => {
+  if(!lobbyPlayers.find(p=>p.id===player.id)) lobbyPlayers.push(player);
+  updateLobbyUI();
+  addChat(null,`${player.name} joined 👋`,true);
+});
+
+socket.on('player_left', ({id}) => {
+  const name=getName(id);
+  lobbyPlayers=lobbyPlayers.filter(p=>p.id!==id);
+  updateLobbyUI();
+  if(gameActive){ toast(`${name} disconnected!`); applyLeave(id); }
+});
+
+socket.on('player_rejoined', ({player}) => {
+  const ex=lobbyPlayers.find(p=>p.uid===player.uid);
+  if(ex) ex.id=player.id; else lobbyPlayers.push(player);
+  toast(`${player.name} reconnected 🔄`);
+});
+
+socket.on('new_host', ({id}) => {
+  const p=lobbyPlayers.find(p=>p.id===id);
+  if(p){ p.isHost=true; lobbyPlayers.forEach(q=>{if(q.id!==id)q.isHost=false;}); }
+  if(id===socket.id){ isHost=true; toast('You are now the host 👑'); }
+  updateLobbyUI();
+});
+
+socket.on('settings_updated', (settings) => {
+  gameSettings=settings;
+});
+
+socket.on('game_start', (data) => {
+  receiveStart(data);
+});
+
+socket.on('game_rejoin', (data) => {
+  receiveRejoin(data);
+});
+
+socket.on('game_state', (data) => {
+  applyState(data);
+});
+
+socket.on('your_hand', ({hand}) => {
+  myHand=hand; renderHand();
+});
+
+socket.on('action_banner', ({msg}) => {
+  showBanner(msg);
+});
+
+socket.on('uno_called', ({id}) => {
+  showBanner(`${getName(id)} UNO! 🎉`);
+  sfx('uno');
+});
+
+socket.on('chat', ({name, text, system}) => {
+  addChat(name, text, system);
+});
+
+socket.on('reaction', ({emoji, name}) => {
+  floatEmoji(emoji, name);
+});
+
+socket.on('rematch_count', ({votes, total}) => {
+  rematchVotes=new Set(votes);
+  updateRematchBtn();
+  toast(`Play again votes: ${votes.length}/${total}`);
+});
+
+socket.on('rematch_go', () => {
+  document.getElementById('winModal').style.display='none';
+  rematchVotes=new Set();
+  toast('Starting new game! 🎮');
+});
+
+socket.on('game_over', ({finishOrder: fo}) => {
+  finishOrder=fo; gameActive=false;
+  stopMusic();
+  sfx(fo[0]===socket.id?'win':'lose');
+  showGameOver(fo[0]===socket.id);
+});
+
+// ================================================================
+//  SOUNDS — Web Audio API
+// ================================================================
+let _audioCtx=null;
+function getAudioCtx(){if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();return _audioCtx;}
+function _tone(freq,type,dur,vol,delay){
+  try{const ctx=getAudioCtx(),osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.connect(gain);gain.connect(ctx.destination);osc.type=type||'sine';osc.frequency.value=freq;
+  const t=ctx.currentTime+(delay||0);
+  gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(vol||0.3,t+0.01);gain.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  osc.start(t);osc.stop(t+dur+0.05);}catch(e){}}
+const SFX_DEFS={
+  touch:    ()=>{_tone(600,'sine',0.07,0.12);},
+  play:     ()=>{_tone(660,'square',0.04,0.12);_tone(880,'sine',0.08,0.18,0.03);},
+  draw:     ()=>{_tone(440,'sawtooth',0.06,0.08);_tone(330,'sawtooth',0.07,0.07,0.05);},
+  uno:      ()=>{[0,0.1,0.2].forEach((d,i)=>_tone([880,1100,1320][i],'square',0.12,0.25,d));},
+  win:      ()=>{[0,1,2,3,4].forEach(i=>_tone([523,659,784,1047,1319][i],'sine',0.25,0.22,i*0.12));},
+  lose:     ()=>{[0,1,2].forEach(i=>_tone([392,330,262][i],'triangle',0.3,0.2,i*0.15));},
+};
+function sfx(k){try{if(SFX_DEFS[k])SFX_DEFS[k]();}catch(e){}}
+
+let themeOn=false,tensionOn=false,_themeTimeout=null,_themeStep=0;
+const THEME_NOTES=[[261,329,392],[294,370,440],[329,415,494],[349,440,523]];
+function startTheme(){if(themeOn)return;themeOn=true;_playThemeLoop();}
+function _playThemeLoop(){if(!themeOn)return;const chord=THEME_NOTES[_themeStep++%THEME_NOTES.length];chord.forEach((f,i)=>_tone(f,'sine',0.38,0.04,i*0.06));_themeTimeout=setTimeout(_playThemeLoop,520);}
+function stopMusic(){themeOn=false;tensionOn=false;clearTimeout(_themeTimeout);}
 function checkTension(){
-  const anyone1=Object.values(handCounts).some(c=>c===1)||((hands[myPeerId]||[]).length===1);
-  if(anyone1&&!tensionOn&&themeOn){tensionOn=true;fadeTo(SND['theme'],0.08,700);SND['last'].currentTime=0;SND['last'].play().catch(()=>{});fadeTo(SND['last'],0.55,700);}
-  else if(!anyone1&&tensionOn){tensionOn=false;fadeTo(SND['last'],0,500);setTimeout(()=>{SND['last'].pause();SND['last'].currentTime=0;},550);fadeTo(SND['theme'],0.35,700);}
+  const anyone1=Object.values(handCounts).some(c=>c===1)||(myHand.length===1);
+  if(anyone1&&!tensionOn&&themeOn){tensionOn=true;_tone(880,'square',0.1,0.15);_tone(1100,'square',0.1,0.12,0.15);}
+  else if(!anyone1&&tensionOn){tensionOn=false;}
 }
 
 // ================================================================
@@ -793,516 +957,60 @@ function checkTension(){
 function toggleFS(){if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});else document.exitFullscreen();}
 
 // ================================================================
-//  CARD HELPERS
+//  ROOM ACTIONS
 // ================================================================
-const FB={red:'#e8192c',yellow:'#f5d400',green:'#1e9e46',blue:'#0156a8',wild:'#333'};
-const SYM={skip:'⊘',reverse:'↺',draw2:'+2',wild:'✦',wild_draw4:'+4'};
-const COLS=['red','yellow','green','blue'];
-const NUMS=['0','1','2','3','4','5','6','7','8','9'];
-const SPEC=['skip','reverse','draw2'];
-const CMETA={
-  red:{hex:'#e8192c',glow:'rgba(232,25,44,0.6)',lbl:'Red'},
-  yellow:{hex:'#f5d400',glow:'rgba(245,212,0,0.6)',lbl:'Yellow'},
-  green:{hex:'#1e9e46',glow:'rgba(30,158,70,0.6)',lbl:'Green'},
-  blue:{hex:'#0156a8',glow:'rgba(1,86,168,0.6)',lbl:'Blue'},
-};
-
-function cardFile(c){
-  if(c.value==='wild')return'assets/wild.png';
-  if(c.value==='wild_draw4')return'assets/wild_draw4.png';
-  return`assets/${c.color}_${c.value}.png`;
-}
-
-function makeImg(card){
-  const w=document.createElement('div');
-  w.style.cssText='width:100%;height:100%;border-radius:inherit;overflow:hidden;';
-  const img=document.createElement('img');
-  img.src=cardFile(card);img.alt=`${card.color} ${card.value}`;
-  img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;pointer-events:none;';
-  img.onerror=()=>{
-    img.remove();
-    const fb=document.createElement('div');
-    fb.style.cssText=`width:100%;height:100%;background:${FB[card.color]||'#333'};border-radius:inherit;display:flex;align-items:center;justify-content:center;font-family:Nunito,sans-serif;font-weight:900;font-size:clamp(12px,3vw,20px);color:white;`;
-    fb.textContent=SYM[card.value]||card.value;w.appendChild(fb);
-  };
-  w.appendChild(img);return w;
-}
-
-function makeBack(){
-  const w=document.createElement('div');
-  w.style.cssText='width:100%;height:100%;border-radius:inherit;overflow:hidden;';
-  const img=document.createElement('img');
-  img.src='assets/card_back.png';
-  img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;pointer-events:none;';
-  img.onerror=()=>{img.remove();const fb=document.createElement('div');fb.style.cssText='width:100%;height:100%;background:linear-gradient(145deg,#1a3a8a,#0d2060);border-radius:inherit;display:flex;align-items:center;justify-content:center;font-family:Nunito,sans-serif;font-weight:900;font-size:16px;color:#e8192c;';fb.textContent='UNO';w.appendChild(fb);};
-  w.appendChild(img);return w;
-}
-
-// ================================================================
-//  DECK
-// ================================================================
-function buildDeck(){
-  const d=[];
-  for(const c of COLS){
-    d.push({color:c,value:'0'});
-    for(const n of NUMS.slice(1)){d.push({color:c,value:n});d.push({color:c,value:n});}
-    for(const s of SPEC){d.push({color:c,value:s});d.push({color:c,value:s});}
-  }
-  for(const w of['wild','wild_draw4'])for(let i=0;i<4;i++)d.push({color:'wild',value:w});
-  return d;
-}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-
-// ================================================================
-//  STATE
-// ================================================================
-let myPeerId=null,myName='Player',myAvatar='🎮',isHost=false;
-let peer=null,connections={},hostConn=null;
-let lobbyPlayers=[];
-// Game state (authoritative on host)
-let deck=[],hands={},discardTop=null,discardPile=[],handCounts={};
-let currentColor='',currentValue='';
-let turnOrder=[],currentTurnIdx=0,direction=1;
-let selectedCard=null,pendingWild=null;
-let gameActive=false,unoFlags={};
-let finishOrder=[],gameSettings={cards:7,stacking:false};
-let deckCount=0; // for guests
-
-// ================================================================
-//  PEER SETUP
-// ================================================================
-function genCode(){const ch='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let c='';for(let i=0;i<6;i++)c+=ch[Math.floor(Math.random()*ch.length)];return c;}
-
-function showConn(t){document.getElementById('connectingText').textContent=t;document.getElementById('connectingIndicator').classList.add('show');}
-function hideConn(){document.getElementById('connectingIndicator').classList.remove('show');}
-function showErr(m){const e=document.getElementById('loginError');e.textContent=m;e.classList.add('show');}
-function hideErr(){document.getElementById('loginError').classList.remove('show');}
-
 function createRoom(){
   if(!myUID){toast('Please log in first');return;}
-  hideErr();
-  const code=genCode();myPeerId=code;isHost=true;
-  showConn('Creating room…');
-  peer=new Peer(code,{debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'}]}});
-  peer.on('open',id=>{hideConn();myPeerId=id;lobbyPlayers=[{id:myPeerId,name:myName,avatar:myAvatar,avatarIsPhoto:typeof myAvatar==='string'&&myAvatar.startsWith('data:'),uid:myUID,isHost:true}];showLobby();setupHostListeners();});
-  peer.on('error',err=>{hideConn();showErr('Connection failed: '+err.type);});
-  peer.on('call',handleIncomingCall);
+  hideErr();showConn('Creating room…');
+  socket.emit('create_room',{name:myName,avatar:myAvatar,uid:myUID});
 }
 
 function joinRoom(){
   if(!myUID){toast('Please log in first');return;}
   const code=document.getElementById('roomCodeInput').value.trim().toUpperCase();
   if(!code){showErr('Please enter a room code!');return;}
-  hideErr();
-  const gid=genCode()+Math.random().toString(36).slice(2,5).toUpperCase();
-  myPeerId=gid;isHost=false;
-  // Check if we're reconnecting (match by uid)
-  let wasInGame=false;
-  try{const s=sessionStorage.getItem('uno_session');if(s){const sess=JSON.parse(s);if(sess.roomCode===code&&sess.uid===myUID)wasInGame=true;}}catch(e){}
-  showConn('Connecting…');
-  peer=new Peer(gid,{debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'}]}});
-  peer.on('open',()=>{
-    hostConn=peer.connect(code,{reliable:true});
-    hostConn.on('open',()=>{
-      hideConn();
-      const payload={type:wasInGame?'REJOIN':'JOIN',id:myPeerId,name:myName,avatar:myAvatar,uid:myUID};
-      hostConn.send(payload);
-      if(wasInGame)toast('Attempting to rejoin game… 🔄');
-    });
-    hostConn.on('data',onGuestReceive);
-    hostConn.on('close',()=>{toast('Host disconnected!');setTimeout(leaveLobby,2000);});
-    hostConn.on('error',()=>{hideConn();showErr('Could not connect — check the code!');});
-  });
-  peer.on('error',err=>{hideConn();showErr('Error: '+err.type);});
-  peer.on('call',handleIncomingCall);
-  setTimeout(()=>{if(!hostConn||!hostConn.open){hideConn();showErr('Could not connect. Is the room code correct?');}},10000);
+  hideErr();showConn('Connecting…');
+  socket.emit('join_room',{code,name:myName,avatar:myAvatar,uid:myUID});
 }
 
-// ================================================================
-//  HOST LISTENERS
-// ================================================================
-function setupHostListeners(){
-  peer.on('connection',conn=>{
-    conn.on('open',()=>{
-      connections[conn.peer]=conn;
-      conn.on('data',data=>onHostReceive(conn.peer,data));
-      conn.on('close',()=>handlePlayerLeave(conn.peer));
-    });
-  });
-}
-
-function broadcast(msg,except){
-  for(const[pid,conn]of Object.entries(connections)){
-    if(pid!==except&&conn.open)conn.send(msg);
-  }
-}
-function sendTo(pid,msg){if(connections[pid]&&connections[pid].open)connections[pid].send(msg);}
-
-// ================================================================
-//  HOST RECEIVE
-// ================================================================
-function onHostReceive(from,data){
-  switch(data.type){
-    case'JOIN':
-      if(gameActive){
-        // Check if this uid was in the game — auto-treat as rejoin
-        const existingByUid=lobbyPlayers.find(p=>p.uid===data.uid);
-        if(existingByUid){
-          // Fall through to REJOIN logic
-          data.type='REJOIN';
-        } else {
-          sendTo(from,{type:'ERROR',msg:'Game in progress'});return;
-        }
-      }
-      if(data.type==='JOIN'){
-        lobbyPlayers.push({id:from,name:data.name,avatar:data.avatar,uid:data.uid,isHost:false});
-        sfx('touch');
-        sendTo(from,{type:'LOBBY_STATE',players:lobbyPlayers,settings:gameSettings});
-        broadcast({type:'PLAYER_JOINED',player:{id:from,name:data.name,avatar:data.avatar,uid:data.uid,isHost:false}},from);
-        updateLobbyUI();
-        addChat(null,`${data.name} joined 👋`,true);
-        broadcast({type:'CHAT',name:null,text:`${data.name} joined 👋`,system:true});
-        break;
-      }
-      // Fall through to REJOIN if uid matched
-    case'REJOIN':{
-      if(!gameActive){sendTo(from,{type:'ERROR',msg:'No game in progress'});return;}
-      // Find existing player by uid
-      const existing=lobbyPlayers.find(p=>p.uid===data.uid);
-      if(!existing){sendTo(from,{type:'ERROR',msg:'You were not in this game'});return;}
-      const oldId=existing.id;
-      // Remap peer ID
-      existing.id=from;
-      if(hands[oldId]){hands[from]=hands[oldId];delete hands[oldId];}
-      else hands[from]=hands[from]||[];
-      // Fix turnOrder
-      const oti=turnOrder.indexOf(oldId);
-      if(oti!==-1)turnOrder[oti]=from;
-      // Fix connections
-      connections[from]=connections[from]||connections[oldId];
-      delete connections[oldId];
-      rebuildCounts();
-      sendTo(from,{type:'GAME_REJOIN',
-        hand:hands[from]||[],turnOrder,currentTurnIdx,direction,
-        currentColor,currentValue,discardTop,deckCount:deck.length,
-        handCounts,players:lobbyPlayers,settings:gameSettings
-      });
-      broadcast({type:'PLAYER_REJOINED',player:{id:from,name:existing.name,avatar:existing.avatar,uid:existing.uid}},from);
-      addChat(null,`${existing.name} reconnected 🔄`,true);
-      broadcast({type:'CHAT',name:null,text:`${existing.name} reconnected 🔄`,system:true},from);
-      broadcastState();
-      break;
-    }
-    case'PLAY_CARD':
-      if(!gameActive||getCurrentId()!==from)return;
-      handlePlay(from,data.card,data.chosenColor);break;
-    case'DRAW_CARD':
-      if(!gameActive||getCurrentId()!==from)return;
-      handleDraw(from);break;
-    case'CALL_UNO':
-      if(!gameActive)return;
-      unoFlags[from]=true;sfx('uno');
-      showBanner(`${getName(from)} UNO! 🎉`);
-      broadcast({type:'UNO_CALLED',id:from});
-      broadcastState();break;
-    case'CHAT':
-      addChat(data.name,data.text,false);
-      broadcast({type:'CHAT',name:data.name,text:data.text,system:false},from);break;
-    case'REACTION':
-      floatEmoji(data.emoji,data.name);broadcast({type:'REACTION',emoji:data.emoji,name:data.name},from);break;
-    case'REMATCH_REQ':
-      broadcast({type:'REMATCH_REQ',name:data.name});addChat(null,`${data.name} wants a rematch!`,true);break;
-    case'REMATCH_VOTE':
-      rematchVotes.add(data.id);
-      broadcast({type:'REMATCH_COUNT',votes:[...rematchVotes],total:lobbyPlayers.length},data.id);
-      updateRematchBtn();
-      addChat(null,`${getName(data.id)} voted to play again (${rematchVotes.size}/${lobbyPlayers.length})`,true);
-      checkRematchStart();
-      break;
-  }
-}
-
-// ================================================================
-//  GUEST RECEIVE
-// ================================================================
-function onGuestReceive(data){
-  switch(data.type){
-    case'ERROR':toast(data.msg);break;
-    case'LOBBY_STATE':lobbyPlayers=data.players;gameSettings=data.settings;showLobby();updateLobbyUI();break;
-    case'PLAYER_JOINED':
-      if(!lobbyPlayers.find(p=>p.id===data.player.id)){lobbyPlayers.push(data.player);sfx('touch');updateLobbyUI();}break;
-    case'PLAYER_LEFT':
-      lobbyPlayers=lobbyPlayers.filter(p=>p.id!==data.id);
-      updateLobbyUI();
-      if(gameActive){toast(`${getName(data.id)} disconnected!`);applyLeave(data.id);}break;
-    case'PLAYER_REJOINED':
-      if(!lobbyPlayers.find(p=>p.id===data.player.id)){lobbyPlayers.push(data.player);}
-      toast(`${data.player.name} reconnected 🔄`);break;
-    case'GAME_START':receiveStart(data);break;
-    case'GAME_REJOIN':receiveRejoin(data);break;
-    case'GAME_STATE':applyState(data);break;
-    case'YOUR_HAND':hands[myPeerId]=data.hand;renderHand();break;
-    case'CHAT':addChat(data.name,data.text,data.system);break;
-    case'REACTION':floatEmoji(data.emoji,data.name);break;
-    case'UNO_CALLED':showBanner(`${getName(data.id)} UNO! 🎉`);sfx('uno');break;
-    case'REMATCH_REQ':toast(`${data.name} wants a rematch!`);addChat(null,`${data.name} wants a rematch!`,true);break;
-    case'REMATCH_COUNT':
-      rematchVotes=new Set(data.votes);
-      updateRematchBtn();
-      toast(`Play again votes: ${data.votes.length}/${data.total}`);
-      break;
-    case'REMATCH_GO':
-      document.getElementById('winModal').style.display='none';
-      rematchVotes=new Set();
-      toast('Starting new game! 🎮');
-      break;
-    case'GAME_OVER':receiveOver(data);break;
-  }
-}
-
-// ================================================================
-//  GAME LOGIC (HOST)
-// ================================================================
-function getCurrentId(){return turnOrder[currentTurnIdx];}
-function getName(id){const p=lobbyPlayers.find(p=>p.id===id);return p?p.name:'???';}
-function getAv(id){const p=lobbyPlayers.find(p=>p.id===id);return p?p.avatar:'❓';}
-
-function startMultiplayerGame(){
+function startGame(){
   if(!isHost)return;
-  if(lobbyPlayers.length<2){toast('Need at least 2 players!');return;}
   const cards=parseInt(document.getElementById('settingCards').value);
   const stacking=document.getElementById('settingStack').value==='on';
-  gameSettings={cards,stacking};
-  deck=shuffle(buildDeck());
-  discardTop=null;discardPile=[];handCounts={};direction=1;currentTurnIdx=0;
-  finishOrder=[];gameActive=true;unoFlags={};
-  turnOrder=shuffle(lobbyPlayers.map(p=>p.id));
-  hands={};
-  for(const pid of turnOrder)hands[pid]=drawD(cards);
-  // First card — no wilds/draw4
-  let start;
-  do{start=deck.pop();if(start.color==='wild'||start.value==='wild_draw4')deck.unshift(start);}
-  while(start.color==='wild'||start.value==='wild_draw4');
-  discardTop=start;discardPile=[start];currentColor=start.color;currentValue=start.value;
-  // First card effects (only skip/draw2 affect first turn)
-  if(start.value==='skip'){advTurn();}
-  else if(start.value==='draw2'){hands[getCurrentId()].push(...drawD(2));advTurn();}
-  // Update handCounts
-  rebuildCounts();
-  // Send starts
-  for(const pid of turnOrder){
-    if(pid===myPeerId)continue;
-    sendTo(pid,{type:'GAME_START',settings:gameSettings,turnOrder,currentTurnIdx,direction,currentColor,currentValue,discardTop:start,deckCount:deck.length,hand:hands[pid],handCounts,players:lobbyPlayers});
-  }
-  showGame();renderGame();addChat(null,'Game started! Good luck! 🃏',true);
+  socket.emit('update_settings',{cards,stacking});
+  socket.emit('start_game');
 }
 
-function drawD(n=1){
-  const out=[];
-  for(let i=0;i<n;i++){
-    if(deck.length===0){
-      // Keep only the current top discard card, reshuffle everything else back
-      if(!discardPile||discardPile.length<=1){
-        break; // truly no cards to reshuffle
-      }
-      const top=discardTop;
-      const reshuffled=discardPile.filter(c=>c!==top);
-      deck=shuffle(reshuffled);
-      discardPile=[top];
-      discardTop=top;
-      addChat(null,'🔀 Deck reshuffled from discard pile!',true);
-      broadcast({type:'CHAT',name:null,text:'🔀 Deck reshuffled from discard pile!',system:true});
-      if(deck.length===0)break;
-    }
-    out.push(deck.pop());
-  }
-  return out;
-}
-
-function advTurn(){currentTurnIdx=((currentTurnIdx+direction)+turnOrder.length)%turnOrder.length;}
-
-function rebuildCounts(){handCounts={};for(const[pid,h]of Object.entries(hands))handCounts[pid]=h.length;}
-
-function canPlay(card){if(card.color==='wild')return true;return card.color===currentColor||card.value===currentValue;}
-
-// ── CORE PLAY LOGIC ──
-function handlePlay(fromId,card,chosenColor){
-  const hand=hands[fromId];
-  if(!hand)return;
-  const idx=hand.findIndex(c=>c.color===card.color&&c.value===card.value);
-  if(idx===-1)return;
-  if(!canPlay(card))return;
-
-  // Save UNO flag BEFORE clearing (critical fix)
-  const calledUno=unoFlags[fromId]===true;
-
-  hand.splice(idx,1);
-  discardTop=card;discardPile.push(card);
-  currentValue=card.value;
-  if(card.color!=='wild')currentColor=card.color;
-  sfx('play');
-
-  let bannerMsg='';
-
-  switch(card.value){
-    case'skip':{
-      // Advance past the card player to the skip target
-      advTurn();
-      const skipped=getCurrentId();
-      bannerMsg=`⊘ ${getName(skipped)} skipped!`;
-      // Advance again past the skipped player to the actual next
-      advTurn();
-      break;
-    }
-    case'reverse':{
-      direction*=-1;
-      if(turnOrder.length===2){
-        // 2-player: reverse = skip (player who played goes again)
-        // After direction flip, advTurn brings us back to fromId
-        advTurn(); // moves to the other player (now direction reversed)
-        advTurn(); // moves back
-        bannerMsg=`↺ ${getName(fromId)} goes again!`;
-      }else{
-        // 3+ players: advance one step in the new direction
-        advTurn();
-        bannerMsg=`↺ Direction reversed!`;
-      }
-      break;
-    }
-    case'draw2':{
-      advTurn();
-      const victim=getCurrentId();
-      const pen=drawD(2);
-      hands[victim].push(...pen);
-      sfx('draw');
-      bannerMsg=`+2 → ${getName(victim)} draws 2!`;
-      advTurn(); // skip victim's turn
-      break;
-    }
-    case'wild':{
-      currentColor=chosenColor||'red';
-      advTurn();
-      bannerMsg=`✦ ${getName(fromId)} chose ${currentColor}`;
-      break;
-    }
-    case'wild_draw4':{
-      currentColor=chosenColor||'red';
-      advTurn();
-      const v4=getCurrentId();
-      const p4=drawD(4);
-      hands[v4].push(...p4);
-      sfx('draw');
-      bannerMsg=`+4 → ${getName(v4)} draws 4! Color: ${currentColor}`;
-      advTurn(); // skip v4's turn
-      break;
-    }
-    default:
-      advTurn();
-      break;
-  }
-
-  if(bannerMsg)showBanner(bannerMsg);
-
-  // UNO penalty: player has 1 card left and didn't call UNO
-  if(hand.length===1&&!calledUno){
-    setTimeout(()=>{
-      if(!gameActive)return;
-      if(hands[fromId]&&hands[fromId].length===1){
-        const pen=drawD(2);
-        hands[fromId].push(...pen);
-        toast(`${getName(fromId)} forgot UNO! +2 🤦`);
-        addChat(null,`${getName(fromId)} forgot UNO! +2 🤦`,true);
-        rebuildCounts();
-        broadcastState();broadcastHands();
-      }
-    },1500);
-  }else if(hand.length===1&&calledUno){
-    unoFlags[fromId]=false; // correctly called, clear flag
-  }
-
-  // Check win
-  if(hand.length===0){
-    finishOrder.push(fromId);
-    delete hands[fromId];
-    const rem=turnOrder.filter(id=>hands[id]&&hands[id].length>0);
-    if(rem.length<=1){if(rem.length===1)finishOrder.push(rem[0]);rebuildCounts();endGame();return;}
-    // Remove from turn order (fix: adjust currentTurnIdx properly)
-    const ti=turnOrder.indexOf(fromId);
-    if(ti!==-1){
-      turnOrder.splice(ti,1);
-      if(ti<currentTurnIdx)currentTurnIdx--;
-      else if(currentTurnIdx>=turnOrder.length)currentTurnIdx=0;
-    }
-    toast(`${getName(fromId)} finished! 🎉`);addChat(null,`${getName(fromId)} finished! 🎉`,true);
-  }
-
-  rebuildCounts();
-  broadcastState();broadcastHands();
-}
-
-function handleDraw(fromId){
-  const drawn=drawD(1);
-  if(!drawn.length){
-    // No cards left in deck or discard — end game, rank by fewest cards
-    addChat(null,'No cards left anywhere — game ends! 🤝',true);
-    broadcast({type:'CHAT',name:null,text:'No cards left anywhere — game ends! 🤝',system:true});
-    const remaining=turnOrder.filter(id=>hands[id]);
-    remaining.sort((a,b)=>(hands[a]||[]).length-(hands[b]||[]).length);
-    for(const pid of remaining)if(!finishOrder.includes(pid))finishOrder.push(pid);
-    rebuildCounts();endGame();
-    return;
-  }
-  sfx('draw');
-  if(!hands[fromId])hands[fromId]=[];
-  hands[fromId].push(...drawn);
-  unoFlags[fromId]=false;
-  advTurn();
-  rebuildCounts();
-  broadcastState();broadcastHands();
-}
-
-function broadcastState(){
-  const state={
-    type:'GAME_STATE',currentTurnIdx,direction,currentColor,currentValue,
-    discardTop,deckCount:deck.length,handCounts,turnOrder,finishOrder,unoFlags
-  };
-  broadcast(state);
-  applyState(state); // apply locally for host
-}
-
-function broadcastHands(){
-  for(const[pid,hand]of Object.entries(hands)){
-    if(pid===myPeerId)continue;
-    sendTo(pid,{type:'YOUR_HAND',hand});
-  }
-}
-
-function endGame(){
-  gameActive=false;stopMusic();
-  sfx(finishOrder[0]===myPeerId?'win':'lose');
-  broadcast({type:'GAME_OVER',finishOrder});
-  showGameOver(finishOrder[0]===myPeerId);
+function leaveLobby(){
+  stopVoice();
+  socket.emit('leave_room');
+  gameActive=false;myHand=[];handCounts={};selectedCard=null;lobbyPlayers=[];
+  document.getElementById('winModal').style.display='none';
+  document.getElementById('colorModal').style.display='none';
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('lobbyScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  stopMusic();
 }
 
 // ================================================================
-//  GUEST: APPLY STATE
+//  RECEIVE GAME START / REJOIN
 // ================================================================
 function receiveStart(data){
-  hands={[myPeerId]:data.hand};
+  myHand=data.hand;
   turnOrder=data.turnOrder;currentTurnIdx=data.currentTurnIdx;
   direction=data.direction;currentColor=data.currentColor;currentValue=data.currentValue;
   discardTop=data.discardTop;deckCount=data.deckCount;
   handCounts=data.handCounts||{};
   finishOrder=[];gameActive=true;unoFlags={};
   lobbyPlayers=data.players||lobbyPlayers;
-  // Save session for reconnect
-  try{sessionStorage.setItem('uno_session',JSON.stringify({uid:myUID,name:myName,roomCode:hostConn?hostConn.peer:null,peerId:myPeerId}));}catch(e){}
-  showGame();renderGame();startTheme();
+  showGameScreen();renderGame();startTheme();
   addChat(null,'Game started! Good luck! 🃏',true);
 }
 
 function receiveRejoin(data){
-  hands={[myPeerId]:data.hand};
+  myHand=data.hand;
   turnOrder=data.turnOrder;currentTurnIdx=data.currentTurnIdx;
   direction=data.direction;currentColor=data.currentColor;currentValue=data.currentValue;
   discardTop=data.discardTop;deckCount=data.deckCount;
@@ -1310,10 +1018,8 @@ function receiveRejoin(data){
   gameSettings=data.settings||gameSettings;
   lobbyPlayers=data.players||lobbyPlayers;
   finishOrder=[];gameActive=true;
-  try{sessionStorage.setItem('uno_session',JSON.stringify({name:myName,avatar:myAvatar,roomCode:hostConn?hostConn.peer:null}));}catch(e){}
-  showGame();renderGame();startTheme();
-  toast('Reconnected to game! 🔄');
-  addChat(null,'You reconnected 🔄',true);
+  showGameScreen();renderGame();startTheme();
+  toast('Reconnected! 🔄');
 }
 
 function applyState(data){
@@ -1328,245 +1034,108 @@ function applyState(data){
   renderGame();checkTension();
 }
 
-function applyLeave(pid){
-  const ti=turnOrder.indexOf(pid);
-  if(ti!==-1){
-    turnOrder.splice(ti,1);
-    if(ti<currentTurnIdx)currentTurnIdx--;
-    else if(currentTurnIdx>=turnOrder.length)currentTurnIdx=0;
-  }
-  delete handCounts[pid];
+function applyLeave(id){
+  const ti=turnOrder.indexOf(id);
+  if(ti!==-1){turnOrder.splice(ti,1);if(ti<currentTurnIdx)currentTurnIdx--;else if(currentTurnIdx>=turnOrder.length)currentTurnIdx=0;}
+  delete handCounts[id];
   renderGame();
-}
-
-function receiveOver(data){
-  finishOrder=data.finishOrder;gameActive=false;
-  stopMusic();sfx(finishOrder[0]===myPeerId?'win':'lose');
-  showGameOver(finishOrder[0]===myPeerId);
 }
 
 // ================================================================
 //  PLAYER ACTIONS
 // ================================================================
-function isMyTurn(){return gameActive&&getCurrentId()===myPeerId;}
+function isMyTurn(){return gameActive&&turnOrder[currentTurnIdx]===socket.id;}
+
+function canPlay(card){
+  if(card.color==='wild')return true;
+  return card.color===currentColor||card.value===currentValue;
+}
 
 function onCardTap(card,el){
   if(!isMyTurn()){toast("Not your turn!");return;}
-  if(!canPlay(card)){
-    sfx('touch');toast("Can't play that card!");
-    el.animate([{transform:'translateX(-6px) translateY(-22px) scale(1.07)'},{transform:'translateX(6px) translateY(-22px) scale(1.07)'},{transform:'translateX(-4px) translateY(-22px) scale(1.07)'},{transform:'translateX(4px) translateY(-22px) scale(1.07)'},{transform:'translateY(-22px) scale(1.07)'}],{duration:280});
-    return;
-  }
+  if(!canPlay(card)){sfx('touch');toast("Can't play that card!");
+    el.animate([{transform:'translateX(-6px) translateY(-22px) scale(1.07)'},{transform:'translateX(6px) translateY(-22px) scale(1.07)'},{transform:'translateY(-22px) scale(1.07)'}],{duration:280});return;}
   if(selectedCard===card){
     sfx('play');el.classList.remove('selected');selectedCard=null;
     if(card.value==='wild'||card.value==='wild_draw4'){pendingWild=card;document.getElementById('colorModal').style.display='flex';}
-    else{sendPlay(card,null);}
+    else{socket.emit('play_card',{card,chosenColor:null});myHand.splice(myHand.indexOf(card),1);renderHand();}
   }else{
     sfx('touch');selectedCard=card;renderHand();
   }
 }
 
-function sendPlay(card,color){
-  if(isHost){handlePlay(myPeerId,card,color);broadcastHands();}
-  else{
-    hostConn.send({type:'PLAY_CARD',card,chosenColor:color});
-    const i=hands[myPeerId].findIndex(c=>c.color===card.color&&c.value===card.value);
-    if(i!==-1)hands[myPeerId].splice(i,1);
-    renderHand();
-  }
-  selectedCard=null;
-  const dp=document.getElementById('discardPile');
-  dp.classList.add('pop-in');setTimeout(()=>dp.classList.remove('pop-in'),320);
-}
-
 function pickColor(color){
   document.getElementById('colorModal').style.display='none';
   if(!pendingWild)return;
-  const c=pendingWild;pendingWild=null;sendPlay(c,color);
+  const c=pendingWild;pendingWild=null;
+  socket.emit('play_card',{card:c,chosenColor:color});
+  myHand.splice(myHand.indexOf(c),1);renderHand();
+  const dp=document.getElementById('discardPile');dp.classList.add('pop-in');setTimeout(()=>dp.classList.remove('pop-in'),320);
 }
 
 function playerDraw(){
   if(!isMyTurn())return;
   sfx('draw');
-  if(isHost){handleDraw(myPeerId);broadcastHands();}
-  else hostConn.send({type:'DRAW_CARD'});
+  socket.emit('draw_card');
   selectedCard=null;
 }
 
 function callUno(){
-  if(!gameActive)return;
-  const h=hands[myPeerId]||[];
-  if(h.length!==2)return;
-  sfx('uno');unoFlags[myPeerId]=true;toast('UNO! 🎉');
-  if(isHost){broadcast({type:'UNO_CALLED',id:myPeerId});broadcastState();}
-  else hostConn.send({type:'CALL_UNO'});
+  if(!gameActive||myHand.length!==2)return;
+  sfx('uno');toast('UNO! 🎉');
+  socket.emit('call_uno');
 }
 
 // ================================================================
-//  VOICE CALL (PeerJS media mesh)
+//  VOICE (WebRTC via simple peer connections - unchanged)
 // ================================================================
 let localStream=null,voiceActive=false,voiceMuted=false;
-let mediaCalls={};
-let audioEls={};
-let speakingMap={};
-let analyserMap={};
+let mediaCalls={},audioEls={},speakingMap={},analyserMap={};
 
-function toggleVoice(){
-  if(!voiceActive){startVoice();}
-  else{stopVoice();}
-}
-
+function toggleVoice(){voiceActive?stopVoice():startVoice();}
 function startVoice(){
   navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(stream=>{
     localStream=stream;voiceActive=true;
     document.getElementById('btnMic').textContent='🔴';
     document.getElementById('btnMic').classList.add('active');
     setupLocalVoiceDetection(stream);
-    for(const p of lobbyPlayers){
-      if(p.id===myPeerId)continue;
-      callPlayer(p.id,stream);
-    }
     document.querySelectorAll('.player-mic').forEach(m=>m.classList.add('active'));
-    const myMic=document.getElementById('myMicIcon');if(myMic)myMic.classList.add('active');
-    updateVoicePanel();
     toast('Voice call started 🎤');
   }).catch(err=>{toast('Mic access denied: '+err.message);});
 }
-
 function stopVoice(){
   if(localStream)localStream.getTracks().forEach(t=>t.stop());
   localStream=null;voiceActive=false;voiceMuted=false;
-  for(const id in mediaCalls){try{mediaCalls[id].close();}catch(e){}}
-  mediaCalls={};
   for(const id in audioEls){try{document.body.removeChild(audioEls[id]);}catch(e){}}
   audioEls={};analyserMap={};speakingMap={};
   document.getElementById('btnMic').textContent='🎤';
   document.getElementById('btnMic').classList.remove('active','muted');
   document.querySelectorAll('.player-mic').forEach(m=>m.className='player-mic');
-  const myMic=document.getElementById('myMicIcon');if(myMic)myMic.className='player-mic';
   toast('Voice call ended');
 }
-
-function callPlayer(pid,stream){
-  if(!peer||!stream)return;
-  try{
-    const call=peer.call(pid,stream,{metadata:{name:myName,avatar:myAvatar}});
-    mediaCalls[pid]=call;
-    call.on('stream',remote=>{playRemote(pid,remote);});
-    call.on('close',()=>{delete mediaCalls[pid];delete speakingMap[pid];updateVoicePanel();});
-  }catch(e){console.warn('Call failed:',e);}
-}
-
-function handleIncomingCall(call){
-  if(localStream){
-    call.answer(localStream);
-  }else{
-    // Start mic if not already active
-    navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(stream=>{
-      localStream=stream;voiceActive=true;
-      document.getElementById('btnMic').textContent='🔴';
-      document.getElementById('btnMic').classList.add('active');
-      setupLocalVoiceDetection(stream);
-      call.answer(stream);
-      document.querySelectorAll('.player-mic').forEach(m=>m.classList.add('active'));
-      const myMic=document.getElementById('myMicIcon');if(myMic)myMic.classList.add('active');
-      updateVoicePanel();
-    }).catch(()=>call.answer());
-  }
-  call.on('stream',remote=>{playRemote(call.peer,remote);mediaCalls[call.peer]=call;updateVoicePanel();});
-  call.on('close',()=>{delete mediaCalls[call.peer];delete speakingMap[call.peer];updateVoicePanel();});
-}
-
-function playRemote(pid,stream){
-  let a=audioEls[pid];
-  if(!a){a=document.createElement('audio');a.autoplay=true;a.style.display='none';document.body.appendChild(a);audioEls[pid]=a;}
-  a.srcObject=stream;
-  setupRemoteVoiceDetection(pid,stream);
-}
-
 function setupLocalVoiceDetection(stream){
-  try{
-    const ctx=new AudioContext(),src=ctx.createMediaStreamSource(stream),an=ctx.createAnalyser();
-    an.fftSize=256;src.connect(an);analyserMap[myPeerId]={ctx,analyser:an};
-    tickVoice();
-  }catch(e){}
+  try{const ctx=new AudioContext(),src=ctx.createMediaStreamSource(stream),an=ctx.createAnalyser();
+  an.fftSize=256;src.connect(an);analyserMap[socket.id]={ctx,analyser:an};tickVoice();}catch(e){}
 }
-
-function setupRemoteVoiceDetection(pid,stream){
-  try{
-    const ctx=new AudioContext(),src=ctx.createMediaStreamSource(stream),an=ctx.createAnalyser();
-    an.fftSize=256;src.connect(an);analyserMap[pid]={ctx,analyser:an};
-  }catch(e){}
-}
-
 let voiceTick=null;
 function tickVoice(){
   if(voiceTick)cancelAnimationFrame(voiceTick);
-  function check(){
-    if(!voiceActive)return;
-    const data=new Uint8Array(128);
-    for(const[pid,{analyser}]of Object.entries(analyserMap)){
-      analyser.getByteFrequencyData(data);
-      const avg=data.slice(0,60).reduce((a,b)=>a+b,0)/60;
-      const isSpeaking=avg>18;
-      if(speakingMap[pid]!==isSpeaking){
-        speakingMap[pid]=isSpeaking;
-        updateSpeakingUI(pid,isSpeaking);
-      }
-    }
-    voiceTick=requestAnimationFrame(check);
-  }
+  function check(){if(!voiceActive)return;const data=new Uint8Array(128);
+    for(const[pid,{analyser}]of Object.entries(analyserMap)){analyser.getByteFrequencyData(data);const avg=data.slice(0,60).reduce((a,b)=>a+b,0)/60;const isSpeaking=avg>18;
+      if(speakingMap[pid]!==isSpeaking){speakingMap[pid]=isSpeaking;updateSpeakingUI(pid,isSpeaking);}}
+    voiceTick=requestAnimationFrame(check);}
   check();
 }
-
 function updateSpeakingUI(pid,speaking){
-  const panels=document.querySelectorAll('.opp-panel');
-  panels.forEach(p=>{if(p.dataset.pid===pid)p.classList.toggle('speaking',speaking);});
-  const mic=document.getElementById('mic-'+pid);
-  if(mic)mic.classList.toggle('speaking',speaking);
-  if(pid===myPeerId){
-    const myMic=document.getElementById('myMicIcon');
-    if(myMic)myMic.classList.toggle('speaking',speaking);
-  }
-}
-
-function updateVoicePanel(){
-  const myMic=document.getElementById('myMicIcon');
-  if(myMic){
-    myMic.classList.toggle('muted',voiceMuted&&voiceActive);
-    myMic.classList.toggle('active',voiceActive&&!voiceMuted);
-  }
-}
-
-function toggleMute(){
-  if(!localStream)return;
-  voiceMuted=!voiceMuted;
-  localStream.getAudioTracks().forEach(t=>t.enabled=!voiceMuted);
-  document.getElementById('btnMic').textContent=voiceMuted?'🔇':'🔴';
-  document.getElementById('btnMic').classList.toggle('muted',voiceMuted);
-  updateVoicePanel();
-  toast(voiceMuted?'Muted 🔇':'Unmuted 🎤');
+  document.querySelectorAll('.opp-panel').forEach(p=>{if(p.dataset.pid===pid)p.classList.toggle('speaking',speaking);});
 }
 
 // ================================================================
 //  CHAT
 // ================================================================
 let chatOpen=false;
-
-function toggleChat(){
-  chatOpen=!chatOpen;
-  document.getElementById('chatPanel').classList.toggle('open',chatOpen);
-  if(chatOpen)document.getElementById('chatInput').focus();
-}
-
-function sendChat(){
-  const inp=document.getElementById('chatInput'),text=inp.value.trim();
-  if(!text)return;inp.value='';
-  addChat(myName,text,false);
-  if(isHost)broadcast({type:'CHAT',name:myName,text,system:false});
-  else if(hostConn)hostConn.send({type:'CHAT',name:myName,text,system:false});
-}
-
+function toggleChat(){chatOpen=!chatOpen;document.getElementById('chatPanel').classList.toggle('open',chatOpen);if(chatOpen)document.getElementById('chatInput').focus();}
+function sendChat(){const inp=document.getElementById('chatInput'),text=inp.value.trim();if(!text)return;inp.value='';socket.emit('chat',{name:myName,text});}
 function addChat(name,text,sys){
   const c=document.getElementById('chatMsgs'),d=document.createElement('div');
   d.className='chat-msg'+(sys?' sys':'')+(name===myName?' mine':'');
@@ -1574,21 +1143,14 @@ function addChat(name,text,sys){
   const t=document.createElement('div');t.className='mt';t.textContent=text;d.appendChild(t);
   c.appendChild(d);c.scrollTop=c.scrollHeight;
 }
-
-function sendReaction(emoji){
-  floatEmoji(emoji,myName);
-  if(isHost)broadcast({type:'REACTION',emoji,name:myName});
-  else if(hostConn)hostConn.send({type:'REACTION',emoji,name:myName});
-}
-
+function sendReaction(emoji){floatEmoji(emoji,myName);socket.emit('reaction',{emoji,name:myName});}
 function floatEmoji(emoji,from){
   const e=document.createElement('div');e.className='float-emoji';e.textContent=emoji;
-  e.style.left=(20+Math.random()*60)+'vw';e.style.bottom='120px';
-  e.title=from;document.body.appendChild(e);setTimeout(()=>e.remove(),2300);
+  e.style.left=(20+Math.random()*60)+'vw';e.style.bottom='120px';document.body.appendChild(e);setTimeout(()=>e.remove(),2300);
 }
 
 // ================================================================
-//  LOBBY
+//  LOBBY UI
 // ================================================================
 function showLobby(){
   document.getElementById('authScreen').classList.add('hidden');
@@ -1599,7 +1161,7 @@ function showLobby(){
 }
 
 function updateLobbyUI(){
-  const code=isHost?myPeerId:(hostConn?hostConn.peer:'—');
+  const code=currentRoomCode||'—';
   document.getElementById('roomCodeDisplay').textContent=code;
   const url=`${window.location.href.split('?')[0]}?room=${code}`;
   document.getElementById('shareUrl').textContent=url;
@@ -1625,135 +1187,33 @@ function updateLobbyUI(){
 }
 
 function copyLink(){
-  const code=isHost?myPeerId:(hostConn?hostConn.peer:'');
-  const url=`${window.location.href.split('?')[0]}?room=${code}`;
+  const url=`${window.location.href.split('?')[0]}?room=${currentRoomCode}`;
   navigator.clipboard.writeText(url).then(()=>toast('Link copied! 🔗')).catch(()=>{
     const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();toast('Link copied! 🔗');
   });
 }
 
-function leaveLobby(){
-  stopVoice();
-  try{sessionStorage.removeItem('uno_session');}catch(e){}
-  if(peer)peer.destroy();
-  peer=null;connections={};hostConn=null;gameActive=false;lobbyPlayers=[];
-  hands={};handCounts={};selectedCard=null;
-  document.getElementById('winModal').style.display='none';
-  document.getElementById('colorModal').style.display='none';
-  document.getElementById('gameScreen').classList.add('hidden');
-  document.getElementById('lobbyScreen').classList.add('hidden');
-  document.getElementById('authScreen').classList.add('hidden');
-  document.getElementById('loginScreen').classList.remove('hidden');
-  stopMusic();
-}
-
-function handlePlayerLeave(pid){
-  const name=getName(pid);
-  lobbyPlayers=lobbyPlayers.filter(p=>p.id!==pid);
-  delete connections[pid];
-  broadcast({type:'PLAYER_LEFT',id:pid});
-  updateLobbyUI();
-  if(gameActive){
-    toast(`${name} disconnected!`);
-    applyLeave(pid);
-    if(turnOrder.length<=1){if(turnOrder.length===1)finishOrder.push(turnOrder[0]);rebuildCounts();endGame();return;}
-    rebuildCounts();broadcastState();
-  }
-}
-
 // ================================================================
-//  SCREENS
+//  GAME SCREEN
 // ================================================================
-function showGame(){
+function showGameScreen(){
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('lobbyScreen').classList.add('hidden');
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('myNameDisp').textContent=myName;
   const avEl=document.getElementById('myAvDisp');
-  if(myAvatar&&myAvatar.startsWith('data:')){
-    avEl.innerHTML='';
-    const img=document.createElement('img');
-    img.src=myAvatar;img.style.cssText='width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;';
-    avEl.appendChild(img);
-  } else {
-    avEl.textContent=myAvatar||'🎮';
-  }
+  if(myAvatar&&myAvatar.startsWith('data:')){avEl.innerHTML='';const img=document.createElement('img');img.src=myAvatar;img.style.cssText='width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;';avEl.appendChild(img);}
+  else{avEl.textContent=myAvatar||'🎮';}
   startTheme();
-}
-
-let rematchVotes=new Set();
-
-function showGameOver(iWon){
-  if(iWon)spawnConfetti();
-  document.getElementById('winEmoji').textContent=iWon?'🎉':'💀';
-  document.getElementById('winTtl').textContent=iWon?`🏆 ${myName} Wins!`:'Game Over!';
-  document.getElementById('winSub').textContent=iWon?'You cleared your hand — UNO champion!':'Better luck next time!';
-  const sl=document.getElementById('scoreList');sl.innerHTML='';
-  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
-  finishOrder.forEach((pid,i)=>{
-    const li=document.createElement('li');
-    const av=getAv(pid);
-    const avHtml=av&&av.startsWith('data:')
-      ?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="${av}" style="width:100%;height:100%;object-fit:cover"></div>`
-      :`<span style="font-size:18px;flex-shrink:0">${av}</span>`;
-    const name=getName(pid);
-    li.innerHTML=`<span class="score-pos" style="flex-shrink:0">${medals[i]||(i+1)}</span>${avHtml}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${name}</span>`;
-    if(pid===myPeerId)li.style.background='rgba(255,215,0,0.12)';
-    sl.appendChild(li);
-  });
-  rematchVotes=new Set();
-  updateRematchBtn();
-  document.getElementById('winModal').style.display='flex';
-}
-
-function updateRematchBtn(){
-  const btn=document.getElementById('btnPlayAgain');
-  const total=lobbyPlayers.length;
-  const voted=rematchVotes.size;
-  const myVoted=rematchVotes.has(myPeerId);
-  if(myVoted){
-    btn.textContent=`⏳ Waiting… (${voted}/${total})`;
-    btn.disabled=true;btn.style.opacity='0.6';
-  } else {
-    btn.textContent='🔄 Play Again';
-    btn.disabled=false;btn.style.opacity='1';
-  }
-  btn.style.display='inline-block';
-}
-
-function requestRematch(){
-  rematchVotes.add(myPeerId);
-  updateRematchBtn();
-  if(isHost){
-    broadcast({type:'REMATCH_VOTE',id:myPeerId});
-    checkRematchStart();
-  } else {
-    if(hostConn)hostConn.send({type:'REMATCH_VOTE',id:myPeerId});
-    toast('Vote cast! Waiting for others…');
-  }
-}
-
-function checkRematchStart(){
-  if(!isHost)return;
-  if(rematchVotes.size>=lobbyPlayers.length){
-    // Everyone voted — start!
-    broadcast({type:'REMATCH_GO'});
-    doRematch();
-  } else {
-    broadcast({type:'REMATCH_COUNT',votes:[...rematchVotes],total:lobbyPlayers.length});
-  }
-}
-
-function doRematch(){
-  document.getElementById('winModal').style.display='none';
-  hands={};discardTop=null;discardPile=[];rematchVotes=new Set();
-  startMultiplayerGame();
 }
 
 // ================================================================
 //  RENDER
 // ================================================================
+function getName(id){const p=lobbyPlayers.find(p=>p.id===id);return p?p.name:'???';}
+function getAv(id){const p=lobbyPlayers.find(p=>p.id===id);return p?p.avatar:'❓';}
+
 function renderGame(){
   if(!gameActive)return;
   renderDiscard();renderOpponents();renderHand();renderTurn();renderTurnStrip();
@@ -1763,70 +1223,42 @@ function renderDiscard(){
   if(!discardTop)return;
   const pile=document.getElementById('discardPile');
   pile.innerHTML='';pile.style.borderRadius='var(--radius)';
-  const el=makeImg(discardTop);el.style.borderRadius='var(--radius)';
+  const el=makeCardEl(discardTop);el.style.borderRadius='var(--radius)';
   pile.appendChild(el);
   const m=CMETA[currentColor];
   pile.style.boxShadow=m?`0 4px 20px rgba(0,0,0,0.5),0 0 26px ${m.glow}`:'0 4px 20px rgba(0,0,0,0.5)';
   const sw=document.getElementById('colorSwatch'),lb=document.getElementById('colorLbl');
   if(m){sw.style.background=m.hex;sw.style.boxShadow=`0 0 12px ${m.glow}`;lb.textContent=m.lbl;}
-  const dc=isHost?deck.length:deckCount;
-  document.getElementById('deckRemaining').textContent=`${dc} left`;
+  document.getElementById('deckRemaining').textContent=`${deckCount} left`;
 }
 
 function renderOpponents(){
   const row=document.getElementById('opponentsRow');row.innerHTML='';
-
-  // Find my index in turnOrder
-  const myIdx=turnOrder.indexOf(myPeerId);
+  const myIdx=turnOrder.indexOf(socket.id);
   const total=turnOrder.length;
-
-  // Build opponents in clockwise seat order from MY left → across → MY right
-  // Seats to my left come first (closest left = index myIdx+1 in clockwise direction)
-  // Then across, then right side — so display left-to-right matches table clockwise
-  const opponents=[];
   for(let offset=1;offset<total;offset++){
     const pid=turnOrder[(myIdx+offset)%total];
-    opponents.push(pid);
-  }
-
-  for(const pid of opponents){
     const name=getName(pid),avatar=getAv(pid);
-    const cnt=isHost?(hands[pid]?hands[pid].length:0):(handCounts[pid]||0);
-    const isActive=getCurrentId()===pid;
+    const cnt=handCounts[pid]||0;
+    const isActive=turnOrder[currentTurnIdx]===pid;
     const hasUno=cnt===1,isSpeaking=speakingMap[pid]===true;
-
     const panel=document.createElement('div');
     panel.className='opp-panel'+(isActive?' active':'')+(isSpeaking?' speaking':'');
     panel.dataset.pid=pid;
-
     if(hasUno){const b=document.createElement('div');b.className='opp-uno-badge';b.textContent='UNO!';panel.appendChild(b);}
-    if(isSpeaking){const sr=document.createElement('div');sr.className='speak-ring';panel.appendChild(sr);}
-
     const top=document.createElement('div');top.className='opp-top';
     const av=document.createElement('div');av.className='opp-av';
-    if(avatar&&avatar.startsWith('data:')){
-      const img=document.createElement('img');
-      img.src=avatar;img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;';
-      av.appendChild(img);
-    } else {
-      av.textContent=avatar;
-    }
+    if(avatar&&avatar.startsWith('data:')){const img=document.createElement('img');img.src=avatar;img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;';av.appendChild(img);}
+    else{av.textContent=avatar;}
     const nm=document.createElement('div');nm.className='opp-name';nm.textContent=name;
-    const mic=document.createElement('span');
-    mic.className='player-mic'+(voiceActive?' active':'')+(isSpeaking?' speaking':'');
-    mic.id='mic-'+pid;mic.textContent='🎤';
-    top.appendChild(av);top.appendChild(nm);top.appendChild(mic);panel.appendChild(top);
-
+    top.appendChild(av);top.appendChild(nm);panel.appendChild(top);
     const cards=document.createElement('div');cards.className='opp-cards';
     const show=Math.min(cnt,8);
     for(let i=0;i<show;i++){
       const cm=document.createElement('div');cm.className='opp-cm';
-      const img=document.createElement('img');img.src='assets/card_back.png';img.alt='card';
-      img.onerror=function(){this.remove();cm.style.cssText+='background:linear-gradient(145deg,#1a3a8a,#0d2060);display:flex;align-items:center;justify-content:center;font-size:6px;color:#e8192c;font-weight:900;';cm.textContent='U';};
-      cm.appendChild(img);cards.appendChild(cm);
+      cm.appendChild(makeBackEl());cards.appendChild(cm);
     }
     panel.appendChild(cards);
-
     const cc=document.createElement('div');cc.className='opp-cnt';cc.textContent=`${cnt} card${cnt!==1?'s':''}`;panel.appendChild(cc);
     row.appendChild(panel);
   }
@@ -1834,15 +1266,16 @@ function renderOpponents(){
 
 function renderHand(){
   const c=document.getElementById('playerHand');c.innerHTML='';
-  const myHand=hands[myPeerId]||[];const myTurn=isMyTurn();
-  // inner wrapper: centers when few cards, left-aligns when many
+  const myTurn=isMyTurn();
   const inner=document.createElement('div');inner.className='hand-inner';
   for(const card of myHand){
     const el=document.createElement('div');el.className='hand-card';
-    if(myTurn&&canPlay(card))el.classList.add('playable');
-    if(myTurn&&!canPlay(card))el.classList.add('dead');
+    const playable=myTurn&&canPlay(card);
+    if(playable)el.classList.add('playable');
+    if(myTurn&&!playable)el.classList.add('dead');
     if(selectedCard===card)el.classList.add('selected');
-    const iw=makeImg(card);iw.style.borderRadius='var(--radius)';iw.style.overflow='hidden';el.appendChild(iw);
+    el.style.overflow='hidden';el.style.borderRadius='var(--radius)';
+    el.appendChild(makeCardEl(card));
     const lbl=document.createElement('div');lbl.className='tap-lbl';lbl.textContent='▶ Play';el.appendChild(lbl);
     el.addEventListener('click',()=>onCardTap(card,el));
     inner.appendChild(el);
@@ -1856,8 +1289,8 @@ function renderHand(){
 }
 
 function renderTurn(){
-  const lbl=document.getElementById('turnLabel'),cid=getCurrentId();
-  if(cid===myPeerId){lbl.textContent='Your Turn!';lbl.classList.add('mine');}
+  const lbl=document.getElementById('turnLabel'),cid=turnOrder[currentTurnIdx];
+  if(cid===socket.id){lbl.textContent='Your Turn!';lbl.classList.add('mine');}
   else{lbl.textContent=`${getName(cid)}'s Turn`;lbl.classList.remove('mine');}
   document.getElementById('dirLabel').textContent=direction===1?'▶ Clockwise':'◀ Counter-CW';
 }
@@ -1870,21 +1303,54 @@ function renderTurnStrip(){
 }
 
 // ================================================================
-//  ACTION BANNER (skip/reverse notifications)
+//  GAME OVER / REMATCH
 // ================================================================
-let bannerTimer=null;
-function showBanner(msg){
-  const b=document.getElementById('actionBanner');
-  b.textContent=msg;b.classList.add('show');
-  clearTimeout(bannerTimer);
-  bannerTimer=setTimeout(()=>b.classList.remove('show'),2600);
+function showGameOver(iWon){
+  if(iWon)spawnConfetti();
+  document.getElementById('winEmoji').textContent=iWon?'🎉':'💀';
+  document.getElementById('winTtl').textContent=iWon?`🏆 ${myName} Wins!`:'Game Over!';
+  document.getElementById('winSub').textContent=iWon?'You cleared your hand — UNO champion!':'Better luck next time!';
+  const sl=document.getElementById('scoreList');sl.innerHTML='';
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+  finishOrder.forEach((pid,i)=>{
+    const li=document.createElement('li');
+    const av=getAv(pid);
+    const avHtml=av&&av.startsWith('data:')
+      ?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="${av}" style="width:100%;height:100%;object-fit:cover"></div>`
+      :`<span style="font-size:18px;flex-shrink:0">${av}</span>`;
+    li.innerHTML=`<span class="score-pos">${medals[i]||(i+1)}</span>${avHtml}<span>${getName(pid)}</span>`;
+    if(pid===socket.id)li.style.background='rgba(255,215,0,0.12)';
+    sl.appendChild(li);
+  });
+  rematchVotes=new Set();
+  updateRematchBtn();
+  document.getElementById('winModal').style.display='flex';
+}
+
+function updateRematchBtn(){
+  const btn=document.getElementById('btnPlayAgain');
+  const voted=rematchVotes.has(socket.id);
+  if(voted){btn.textContent=`⏳ Waiting… (${rematchVotes.size}/${lobbyPlayers.length})`;btn.disabled=true;btn.style.opacity='0.6';}
+  else{btn.textContent='🔄 Play Again';btn.disabled=false;btn.style.opacity='1';}
+}
+
+function requestRematch(){
+  rematchVotes.add(socket.id);
+  updateRematchBtn();
+  socket.emit('rematch_vote');
 }
 
 // ================================================================
-//  CONFETTI / TOAST
+//  ACTION BANNER / CONFETTI / TOAST
 // ================================================================
+let bannerTimer=null;
+function showBanner(msg){
+  const b=document.getElementById('actionBanner');b.textContent=msg;b.classList.add('show');
+  clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>b.classList.remove('show'),2600);
+}
+
 function spawnConfetti(){
-  const cols=['#e8192c','#f5d400','#1e9e46','#0156a8','#fff','#FFD700','#ff69b4'];
+  const cols=['#e8192c','#f5d400','#1e9e46','#0156a8','#fff','#FFD700'];
   for(let i=0;i<80;i++){
     const c=document.createElement('div');c.className='confetti-p';
     const sz=6+Math.random()*8;
@@ -1894,67 +1360,35 @@ function spawnConfetti(){
 }
 
 let toastT;
-function toast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);
-}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
+
+// ================================================================
+//  UI HELPERS
+// ================================================================
+function showConn(t){document.getElementById('connectingText').textContent=t;document.getElementById('connectingIndicator').classList.add('show');}
+function hideConn(){document.getElementById('connectingIndicator').classList.remove('show');}
+function showErr(m){const e=document.getElementById('loginError');e.textContent=m;e.classList.add('show');}
+function hideErr(){document.getElementById('loginError').classList.remove('show');}
 
 // ================================================================
 //  AUTH SYSTEM
 // ================================================================
-let myUID = null; // permanent user ID for rejoin matching
-
-function hashPassword(pw){
-  // Simple deterministic hash (not cryptographic, but fine for local storage)
-  let h=0;
-  for(let i=0;i<pw.length;i++){h=((h<<5)-h)+pw.charCodeAt(i);h|=0;}
-  return h.toString(36);
-}
+function hashPassword(pw){let h=0;for(let i=0;i<pw.length;i++){h=((h<<5)-h)+pw.charCodeAt(i);h|=0;}return h.toString(36);}
 
 function compressAvatar(file,cb){
   const reader=new FileReader();
-  reader.onload=e=>{
-    const img=new Image();
-    img.onload=()=>{
-      const canvas=document.createElement('canvas');
-      const size=160; // compress to 160x160
-      canvas.width=size;canvas.height=size;
-      const ctx=canvas.getContext('2d');
-      // crop square from center
-      const min=Math.min(img.width,img.height);
-      const sx=(img.width-min)/2,sy=(img.height-min)/2;
-      ctx.drawImage(img,sx,sy,min,min,0,0,size,size);
-      cb(canvas.toDataURL('image/jpeg',0.7));
-    };
-    img.src=e.target.result;
-  };
+  reader.onload=e=>{const img=new Image();img.onload=()=>{const canvas=document.createElement('canvas');const size=160;canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d');const min=Math.min(img.width,img.height);const sx=(img.width-min)/2,sy=(img.height-min)/2;ctx.drawImage(img,sx,sy,min,min,0,0,size,size);cb(canvas.toDataURL('image/jpeg',0.7));};img.src=e.target.result;};
   reader.readAsDataURL(file);
 }
 
 function handleAvatarUpload(inp){
   if(!inp.files||!inp.files[0])return;
-  compressAvatar(inp.files[0],dataUrl=>{
-    const prev=document.getElementById('registerAvatarPreview');
-    prev.innerHTML=`<img src="${dataUrl}">`;
-    prev._avatarData=dataUrl;
-  });
+  compressAvatar(inp.files[0],dataUrl=>{const prev=document.getElementById('registerAvatarPreview');prev.innerHTML=`<img src="${dataUrl}">`;prev._avatarData=dataUrl;});
 }
 
 function changeProfilePic(inp){
   if(!inp.files||!inp.files[0])return;
-  compressAvatar(inp.files[0],dataUrl=>{
-    // Update account in localStorage
-    const acc=getAccount();
-    if(!acc)return;
-    acc.avatarData=dataUrl;
-    saveAccount(acc);
-    // Update live session
-    myAvatar=dataUrl;
-    // Update profile display
-    const avDisp=document.getElementById('profileAvDisp');
-    avDisp.innerHTML=`<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    toast('Profile photo updated! 📸');
-  });
+  compressAvatar(inp.files[0],dataUrl=>{const acc=getAccount();if(!acc)return;acc.avatarData=dataUrl;saveAccount(acc);myAvatar=dataUrl;const avDisp=document.getElementById('profileAvDisp');avDisp.innerHTML=`<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;toast('Profile photo updated! 📸');});
 }
 
 function switchAuthTab(tab){
@@ -1964,15 +1398,8 @@ function switchAuthTab(tab){
   document.getElementById('tabRegister').classList.toggle('active',tab==='register');
 }
 
-function getAccount(){
-  try{const a=localStorage.getItem('uno_account');return a?JSON.parse(a):null;}catch(e){return null;}
-}
-
-function saveAccount(acc){
-  try{localStorage.setItem('uno_account',JSON.stringify(acc));}catch(e){
-    toast('Storage error — avatar may be too large');
-  }
-}
+function getAccount(){try{const a=localStorage.getItem('uno_account');return a?JSON.parse(a):null;}catch(e){return null;}}
+function saveAccount(acc){try{localStorage.setItem('uno_account',JSON.stringify(acc));}catch(e){toast('Storage error');}}
 
 function doRegister(){
   const username=document.getElementById('registerUsername').value.trim();
@@ -1981,24 +1408,15 @@ function doRegister(){
   const errEl=document.getElementById('registerAuthError');
   const showErr=m=>{errEl.textContent=m;errEl.classList.add('show');};
   errEl.classList.remove('show');
-
   if(!username){showErr('Please enter a username');return;}
   if(username.length<2){showErr('Username must be at least 2 characters');return;}
   if(!pw){showErr('Please enter a password');return;}
   if(pw!==pw2){showErr('Passwords do not match');return;}
-  if(getAccount()){showErr('An account already exists on this device. Login or clear data.');return;}
-
+  if(getAccount()){showErr('An account already exists on this device.');return;}
   const prev=document.getElementById('registerAvatarPreview');
   const avatarData=prev._avatarData||null;
-
-  const acc={
-    uid:'uid_'+Date.now()+'_'+Math.random().toString(36).slice(2),
-    username,
-    passwordHash:hashPassword(pw),
-    avatarData // null if no photo uploaded
-  };
-  saveAccount(acc);
-  loginWithAccount(acc);
+  const acc={uid:'uid_'+Date.now()+'_'+Math.random().toString(36).slice(2),username,passwordHash:hashPassword(pw),avatarData};
+  saveAccount(acc);loginWithAccount(acc);
 }
 
 function doLogin(){
@@ -2007,7 +1425,6 @@ function doLogin(){
   const errEl=document.getElementById('loginAuthError');
   const showErr=m=>{errEl.textContent=m;errEl.classList.add('show');};
   errEl.classList.remove('show');
-
   const acc=getAccount();
   if(!acc){showErr('No account found. Please register first.');return;}
   if(acc.username.toLowerCase()!==username.toLowerCase()){showErr('Username not found');return;}
@@ -2016,20 +1433,14 @@ function doLogin(){
 }
 
 function loginWithAccount(acc){
-  myUID=acc.uid;
-  myName=acc.username;
-  myAvatar=acc.avatarData||'🎮';
-  // Remember they're logged in so next visit skips auth screen
+  myUID=acc.uid;myName=acc.username;myAvatar=acc.avatarData||'🎮';
   try{localStorage.setItem('uno_loggedin','1');}catch(e){}
-  // Show game join screen
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
-  // Populate profile display
   document.getElementById('profileNameDisp').textContent=myName;
   const avDisp=document.getElementById('profileAvDisp');
   if(acc.avatarData){avDisp.innerHTML=`<img src="${acc.avatarData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;}
   else{avDisp.textContent='🎮';}
-  // Pre-fill room if URL has one
   const p=new URLSearchParams(window.location.search),room=p.get('room');
   if(room){document.getElementById('roomCodeInput').value=room.toUpperCase();toast('Room code pre-filled! 🔗');}
 }
@@ -2039,44 +1450,28 @@ function doLogout(){
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('authScreen').classList.remove('hidden');
   myUID=null;myName='Player';myAvatar='🎮';
-  // Pre-fill username on login tab if account exists
   const acc=getAccount();
-  if(acc){
-    document.getElementById('loginUsername').value=acc.username;
-    if(acc.avatarData){
-      document.getElementById('loginAvatarPreview').innerHTML=`<img src="${acc.avatarData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    }
-  }
+  if(acc){document.getElementById('loginUsername').value=acc.username;
+    if(acc.avatarData){document.getElementById('loginAvatarPreview').innerHTML=`<img src="${acc.avatarData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;}}
 }
 
 // ================================================================
-//  AUTO-JOIN FROM URL
+//  AUTO-LOGIN FROM URL
 // ================================================================
 window.addEventListener('load',()=>{
   const acc=getAccount();
   const isLoggedIn=localStorage.getItem('uno_loggedin')==='1';
-
-  if(acc&&isLoggedIn){
-    // Skip auth screen — go straight to game join screen
-    loginWithAccount(acc);
-  } else if(acc){
-    // Has account but not flagged logged in — show auth with username pre-filled
+  if(acc&&isLoggedIn){loginWithAccount(acc);}
+  else if(acc){
     document.getElementById('loginUsername').value=acc.username;
-    if(acc.avatarData){
-      document.getElementById('loginAvatarPreview').innerHTML=`<img src="${acc.avatarData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-    }
+    if(acc.avatarData){document.getElementById('loginAvatarPreview').innerHTML=`<img src="${acc.avatarData}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;}
     setTimeout(()=>document.getElementById('loginPassword').focus(),100);
   }
-  // else: no account — auth screen stays visible, show register tab
 });
 
 document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('registerPassword2').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
-document.getElementById('roomCodeInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter')joinRoom();
-  setTimeout(()=>{e.target.value=e.target.value.toUpperCase();},0);
-});
-
+document.getElementById('roomCodeInput').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();setTimeout(()=>{e.target.value=e.target.value.toUpperCase();},0);});
 document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
 let lastT=0;
 document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastT<=300)e.preventDefault();lastT=n;},false);
