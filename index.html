@@ -463,6 +463,12 @@ body.bg-win { background: radial-gradient(ellipse at 50% 50%, #4a3a0a 0%, #2a1a0
       <div class="setting-box"><label>Cards each</label><select id="settingCards"><option value="5">5 cards</option><option value="7" selected>7 cards</option><option value="10">10 cards</option></select></div>
       <div class="setting-box"><label>Stacking</label><select id="settingStack"><option value="off">Off</option><option value="on">On (house)</option></select></div>
     </div>
+    <div id="hostBotRow" style="display:none;gap:9px;margin-bottom:15px;align-items:center">
+      <span style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:700;flex-shrink:0">🤖 Add Bot:</span>
+      <button onclick="addBotToRoom('easy')"   style="flex:1;background:rgba(30,158,70,0.2);border:1.5px solid rgba(30,158,70,0.35);border-radius:10px;padding:7px 4px;font-family:Nunito,sans-serif;font-weight:900;font-size:11px;color:white;cursor:pointer">Easy</button>
+      <button onclick="addBotToRoom('medium')" style="flex:1;background:rgba(1,86,168,0.2);border:1.5px solid rgba(1,86,168,0.35);border-radius:10px;padding:7px 4px;font-family:Nunito,sans-serif;font-weight:900;font-size:11px;color:white;cursor:pointer">Medium</button>
+      <button onclick="addBotToRoom('hard')"   style="flex:1;background:rgba(232,25,44,0.2);border:1.5px solid rgba(232,25,44,0.35);border-radius:10px;padding:7px 4px;font-family:Nunito,sans-serif;font-weight:900;font-size:11px;color:white;cursor:pointer">Hard</button>
+    </div>
     <button class="btn-gold" id="btnStartGame" onclick="startMultiplayerGame()" disabled>🚀 Start Game</button>
     <button class="btn-ghost" onclick="leaveLobby()">← Leave</button>
   </div>
@@ -1048,12 +1054,11 @@ socket.on('vc_ice',       async ({ from, candidate }) => {
 socket.on('vc_speaking',  ({ id, name, speaking }) => updateVCIndicator(id, name, speaking));
 
 // ================================================================
-//  AI BOT — simple client-side solo practice mode
+//  AI BOT — client helper (actual logic runs server-side)
 // ================================================================
-let botActive = false, botHand = [], botTurnTimer = null;
 function startBotMode() {
-  // Stub: In full implementation would add a bot player to a solo room
-  toast('🤖 AI Bot mode — coming with server update!');
+  // Called by add_bot buttons in lobby — handled by addBotToRoom()
+  toast('🤖 Use the Easy/Medium/Hard buttons in the lobby to add AI bots!');
 }
 
 // ================================================================
@@ -1333,20 +1338,33 @@ function updateLobbyUI() {
     const avHtml = p.avatar && p.avatar.startsWith('data:')
       ? `<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover"></div>`
       : `<span style="font-size:18px">${p.avatar || '🎮'}</span>`;
-    li.innerHTML = `${avHtml}<span>${p.name}</span>${p.isHost ? '<span class="host-badge">HOST</span>' : '<span class="conn-dot"></span>'}`;
+    const botBadge = p.isBot ? '<span class="ai-badge">AI</span>' : '';
+    li.innerHTML = `${avHtml}<span>${p.name}</span>${botBadge}${p.isHost ? '<span class="host-badge">HOST</span>' : '<span class="conn-dot"></span>'}`;
     list.appendChild(li);
   }
   document.getElementById('playerCount').textContent = lobbyPlayers.length;
   const btn = document.getElementById('btnStartGame');
   if (isHost) {
     document.getElementById('hostSettings').style.display = 'flex';
+    document.getElementById('hostBotRow').style.display   = 'flex';
     btn.disabled = lobbyPlayers.length < 2;
     btn.textContent = lobbyPlayers.length < 2 ? '⏳ Waiting for players…' : `🚀 Start (${lobbyPlayers.length} players)`;
   } else {
     document.getElementById('hostSettings').style.display = 'none';
+    document.getElementById('hostBotRow').style.display   = 'none';
     btn.disabled = true; btn.textContent = '⏳ Waiting for host…';
   }
 }
+
+function addBotToRoom(difficulty) {
+  socket.emit('add_bot', { difficulty });
+}
+
+// Handle lobby_update from server (bot add/remove)
+socket.on('lobby_update', ({ players }) => {
+  lobbyPlayers = players;
+  updateLobbyUI();
+});
 function copyLink() {
   const url = `${window.location.href.split('?')[0]}?room=${currentRoomCode}`;
   navigator.clipboard.writeText(url)
