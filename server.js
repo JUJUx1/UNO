@@ -47,9 +47,13 @@ app.get('/stats', (_req, res) => {
   res.json({ rooms: roomList.length, details: roomList });
 });
 
+// ================================================================
+//  In-memory state
+// ================================================================
+const rooms = {};
+
 // ── Stale room cleanup (every 30 min, removes rooms inactive > 2 hours) ──
 const roomCreatedAt = {};
-const _origCreate = rooms;
 setInterval(() => {
   const now = Date.now();
   for (const code of Object.keys(rooms)) {
@@ -63,10 +67,6 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000);
 
-// ================================================================
-//  In-memory state
-// ================================================================
-const rooms = {};
 // rooms[code] = {
 //   code, hostId,
 //   players: [ { id, name, avatar, uid, isHost } ],
